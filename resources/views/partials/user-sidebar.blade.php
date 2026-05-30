@@ -195,25 +195,30 @@
                 <span class="nav-text">Availability</span>
             </a>
         </div>
+        
         <div class="nav-item">
             <a href="{{ route('user.summary') }}" class="nav-link {{ request()->routeIs('user.summary') ? 'active' : '' }}">
                 <span class="nav-icon">📋</span>
                 <span class="nav-text">Summary</span>
             </a>
         </div>
+        
         <div class="nav-item">
             <a href="{{ route('user.reservations') }}" class="nav-link {{ request()->routeIs('user.reservations') ? 'active' : '' }}">
                 <span class="nav-icon">📍</span>
                 <span class="nav-text">Reservations</span>
             </a>
         </div>
+        
         <div class="nav-divider"></div>
+        
         <div class="nav-item">
             <a href="{{ route('user.settings') }}" class="nav-link {{ request()->routeIs('user.settings') ? 'active' : '' }}">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-text">Settings</span>
             </a>
         </div>
+        
         <div class="nav-item">
             <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                 @csrf

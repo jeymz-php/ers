@@ -331,12 +331,13 @@
     <form method="POST" action="{{ route('admin.reservations.reject', $reservation->id) }}">
         @csrf
         <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Reason for Rejection:</label>
-            <textarea name="rejection_reason" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e8eee9; border-radius: 8px;" required></textarea>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1a7a3e;">Reason for Rejection:</label>
+            <textarea name="rejection_reason" rows="4" placeholder="Please provide a detailed reason for rejecting this reservation..." style="width: 100%; padding: 10px; border: 1px solid #e8eee9; border-radius: 8px;" required></textarea>
+            <small style="font-size: 11px; color: #6e7f72;">Minimum 10 characters</small>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn-reject">Confirm Rejection</button>
-            <button type="button" class="btn-approve" onclick="hideRejectForm()" style="background: #6e7f72;">Cancel</button>
+            <button type="submit" class="btn-reject" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Confirm Rejection</button>
+            <button type="button" class="btn-approve" onclick="hideRejectForm()" style="background: #6e7f72; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
         </div>
     </form>
 </div>

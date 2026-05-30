@@ -5,28 +5,34 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\User\UserDashboardController;
+use App\Http\Controllers\User\ReservationController;
+use App\Http\Controllers\User\SummaryController;
+use App\Http\Controllers\User\SettingsController;
+use App\Http\Controllers\User\ChatbotController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AvailabilityController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\AdminManagementController;
 use App\Http\Controllers\Admin\ReservationManagementController;
 use App\Http\Controllers\Admin\CampusManagementController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\User\ReservationController;
-use App\Http\Controllers\User\SummaryController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
-| Guest Routes (Not logged in)
+| GUEST ROUTES (Not logged in)
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
+    // Authentication
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
     Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('register', [RegisterController::class, 'register']);
+    
+    // Password Reset
     Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
     Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
@@ -35,15 +41,15 @@ Route::middleware('guest')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes (Logged in)
+| AUTHENTICATED ROUTES (Logged in)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
     
     // ========== USER ROUTES (For regular users) ==========
-    Route::middleware(['checkUserRole'])->group(function () {
-        // User Dashboard - Only for regular users
+    Route::middleware(['auth', 'checkUserRole'])->group(function () {
+        // User Dashboard
         Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
         
         // User Dashboard API Routes
@@ -52,46 +58,56 @@ Route::middleware('auth')->group(function () {
         Route::get('/user/dashboard/day', [UserDashboardController::class, 'getDayEvents'])->name('user.dashboard.day');
         
         // User Reservation Routes
-Route::middleware(['auth', 'checkUserRole'])->group(function () {
-    Route::get('/reservations', [App\Http\Controllers\User\ReservationController::class, 'index'])->name('user.reservations');
-    Route::post('/reservations', [App\Http\Controllers\User\ReservationController::class, 'store'])->name('user.reservations.store');
-    Route::get('/reservations/availability/{id}', [App\Http\Controllers\User\ReservationController::class, 'showAvailability'])->name('user.reservations.availability');
-    
-    // API route for getting establishments by campus
-    Route::get('/api/campuses/{campusId}/establishments', [App\Http\Controllers\User\ReservationController::class, 'getEstablishmentsByCampus']);
-});
+        Route::get('/reservations', [ReservationController::class, 'index'])->name('user.reservations');
+        Route::post('/reservations', [ReservationController::class, 'store'])->name('user.reservations.store');
+        Route::get('/reservations/availability/{id}', [ReservationController::class, 'showAvailability'])->name('user.reservations.availability');
+        Route::get('/api/campuses/{campusId}/establishments', [ReservationController::class, 'getEstablishmentsByCampus']);
         
         // User Summary Routes
         Route::get('/summary', [SummaryController::class, 'index'])->name('user.summary');
         Route::get('/user/reservations/{id}/details', [SummaryController::class, 'getDetails'])->name('user.reservations.details');
+        
+        // User Settings
+        Route::get('/settings', [SettingsController::class, 'index'])->name('user.settings');
+        Route::post('/settings/password', [SettingsController::class, 'changePassword'])->name('user.settings.password');
+        
+        // Chatbot Routes - MOVED HERE
+        Route::get('/chatbot', [ChatbotController::class, 'index'])->name('chatbot.index');
+        Route::post('/chatbot/process', [ChatbotController::class, 'processMessage'])->name('chatbot.process');
+        Route::post('/chatbot/cancel', [ChatbotController::class, 'cancelReservation'])->name('chatbot.cancel');
     });
-
-    // User Settings
-    Route::get('/settings', [App\Http\Controllers\User\SettingsController::class, 'index'])->name('user.settings');
-    Route::post('/settings/password', [App\Http\Controllers\User\SettingsController::class, 'changePassword'])->name('user.settings.password');
-
-// Password Change (for temporary/system-generated passwords)
-Route::middleware('auth')->group(function () {
+    
+    // Temporary Password Change (Forced)
     Route::get('/change-password', function () {
-        // Only allow access if user has generated password
         if (!auth()->user()->is_password_generated) {
             return redirect()->route('dashboard');
         }
         return view('auth.change-password');
     })->name('password.change');
+    Route::post('/change-password', [ChangePasswordController::class, 'update'])->name('password.change.update');
     
-    Route::post('/change-password', [App\Http\Controllers\Auth\ChangePasswordController::class, 'update'])->name('password.change.update');
-});
-
-// Report Routes
-Route::middleware('auth')->group(function () {
+    // Reports
     Route::get('/report/single/{id}', [ReportController::class, 'generateSingleReport'])->name('report.single');
     Route::get('/report/all', [ReportController::class, 'generateAllReport'])->name('report.all');
-});
     
-    // ========== ADMIN ROUTES (For admin and super admin) ==========
+    // User Status Pages
+    Route::get('/user/pending', function () {
+        if (!auth()->user()->isPending()) {
+            return redirect()->route('dashboard');
+        }
+        return view('user.pending');
+    })->name('user.pending');
+    
+    Route::get('/user/rejected', function () {
+        if (!auth()->user()->isRejected()) {
+            return redirect()->route('dashboard');
+        }
+        return view('user.rejected');
+    })->name('user.rejected');
+    
+    // ========== ADMIN ROUTES ==========
     Route::prefix('admin')->name('admin.')->middleware(['admin'])->group(function () {
-        // Admin Dashboard
+        // Dashboard
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
         // Availability Calendar
@@ -106,7 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{id}/approve', [UserManagementController::class, 'approve'])->name('users.approve');
         Route::post('/users/{id}/reject', [UserManagementController::class, 'reject'])->name('users.reject');
         Route::delete('/users/{id}', [UserManagementController::class, 'destroy'])->name('users.destroy');
-        Route::post('/users/bulk-approve', [UserManagementController::class, 'bulkApprove'])->name('users.bulk-approve');  // ADD THIS LINE
+        Route::post('/users/bulk-approve', [UserManagementController::class, 'bulkApprove'])->name('users.bulk-approve');
         
         // Reservation Management
         Route::get('/reservations', [ReservationManagementController::class, 'index'])->name('reservations.index');
@@ -114,23 +130,22 @@ Route::middleware('auth')->group(function () {
         Route::post('/reservations/{id}/approve', [ReservationManagementController::class, 'approve'])->name('reservations.approve');
         Route::post('/reservations/{id}/reject', [ReservationManagementController::class, 'reject'])->name('reservations.reject');
         Route::delete('/reservations/{id}', [ReservationManagementController::class, 'destroy'])->name('reservations.destroy');
-        Route::post('/reservations/bulk-approve', [ReservationManagementController::class, 'bulkApprove'])->name('reservations.bulk-approve');
-
+        
         // Campus Management
         Route::get('/campuses', [CampusManagementController::class, 'index'])->name('campuses.index');
         Route::post('/campuses', [CampusManagementController::class, 'store'])->name('campuses.store');
         Route::put('/campuses/{id}', [CampusManagementController::class, 'update'])->name('campuses.update');
         Route::post('/campuses/{id}/toggle-status', [CampusManagementController::class, 'toggleStatus'])->name('campuses.toggle-status');
         Route::delete('/campuses/{id}', [CampusManagementController::class, 'destroy'])->name('campuses.destroy');
-
-        // Establishment Management under Campus
+        
+        // Establishment Management
         Route::get('/campuses/{campusId}/establishments', [CampusManagementController::class, 'getEstablishments'])->name('campuses.establishments');
         Route::get('/campuses/{campusId}/establishments/{id}', [CampusManagementController::class, 'getEstablishment'])->name('campuses.establishments.show');
         Route::post('/campuses/{campusId}/establishments', [CampusManagementController::class, 'storeEstablishment'])->name('campuses.establishments.store');
         Route::put('/campuses/{campusId}/establishments/{id}', [CampusManagementController::class, 'updateEstablishment'])->name('campuses.establishments.update');
         Route::post('/campuses/{campusId}/establishments/{id}/toggle-status', [CampusManagementController::class, 'toggleEstablishmentStatus'])->name('campuses.establishments.toggle-status');
         Route::delete('/campuses/{campusId}/establishments/{id}', [CampusManagementController::class, 'destroyEstablishment'])->name('campuses.establishments.destroy');
-
+        
         // Settings
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/password', [SettingsController::class, 'changePassword'])->name('settings.password');
@@ -139,15 +154,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings/backups/list', [SettingsController::class, 'getBackupList'])->name('settings.backups.list');
         Route::get('/settings/backup/download/{filename}', [SettingsController::class, 'downloadBackup'])->name('settings.backup.download');
         Route::delete('/settings/backup/delete/{filename}', [SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
-
+        
         // Notifications
-        Route::get('/notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('admin.notifications');
-        Route::post('/notifications/{id}/read', [App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('admin.notifications.read');
-        Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead'])->name('admin.notifications.mark-all');
-        Route::get('/notifications/{id}/redirect', [App\Http\Controllers\Admin\NotificationController::class, 'markAsReadAndRedirect'])->name('admin.notifications.redirect');
-        // Real-time notifications
-        Route::get('/notifications/unread-count', [App\Http\Controllers\Admin\NotificationController::class, 'getUnreadCount'])->name('admin.notifications.unread');
-        Route::get('/notifications/latest', [App\Http\Controllers\Admin\NotificationController::class, 'getLatest'])->name('admin.notifications.latest');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all');
+        Route::get('/notifications/{id}/redirect', [NotificationController::class, 'markAsReadAndRedirect'])->name('notifications.redirect');
+        Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread');
+        Route::get('/notifications/latest', [NotificationController::class, 'getLatest'])->name('notifications.latest');
         
         // Admin Management (Super Admin only)
         Route::middleware(['super_admin'])->group(function () {
@@ -159,34 +173,16 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// User status pages (accessible even if not approved)
-Route::middleware('auth')->group(function () {
-    Route::get('/user/pending', function () {
-        if (!auth()->user()->isPending()) {
-            return redirect()->route('dashboard');
-        }
-        return view('user.pending');
-    })->name('user.pending');
-    
-    Route::get('/user/rejected', function () {
-        if (!auth()->user()->isRejected()) {
-            return redirect()->route('dashboard');
-        }
-        return view('user.rejected');
-    })->name('user.rejected');
-});
-
 /*
 |--------------------------------------------------------------------------
-| Home Route - Redirect based on role
+| HOME ROUTE
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
     if (auth()->check()) {
-        if (auth()->user()->isAdmin()) {
-            return redirect()->route('admin.dashboard');
-        }
-        return redirect()->route('dashboard');
+        return auth()->user()->isAdmin() 
+            ? redirect()->route('admin.dashboard') 
+            : redirect()->route('dashboard');
     }
     return redirect()->route('login');
 });

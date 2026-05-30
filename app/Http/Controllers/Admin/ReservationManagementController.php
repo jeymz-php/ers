@@ -89,16 +89,33 @@ class ReservationManagementController extends Controller
         
         $reservation = Reservation::findOrFail($id);
         
+        // Store rejection reason in remarks
+        $remarks = json_decode($reservation->remarks, true) ?? [];
+        $remarks['rejection_reason'] = $request->rejection_reason;
+        $remarks['rejected_at'] = now()->toDateTimeString();
+        $remarks['rejected_by'] = auth()->user()->name;
+        
         $reservation->update([
             'status' => 'rejected',
-            'remarks' => json_encode(array_merge(
-                json_decode($reservation->remarks, true) ?? [],
-                ['rejection_reason' => $request->rejection_reason, 'admin_notes' => $request->rejection_reason]
-            ))
+            'remarks' => json_encode($remarks),
+            'approved_at' => null,
+            'approved_by' => null,
         ]);
         
         // Send rejection email to user
-        Mail::to($reservation->user->email)->send(new ReservationStatusMail($reservation, 'rejected', $request->rejection_reason));
+        try {
+            Mail::to($reservation->user->email)->send(new ReservationStatusMail($reservation, 'rejected', $request->rejection_reason));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send rejection email: ' . $e->getMessage());
+        }
+        
+        // Log the action
+        \App\Models\AdminActionLog::create([
+            'admin_id' => auth()->id(),
+            'target_user_id' => $reservation->user_id,
+            'action' => 'reject_reservation',
+            'details' => "Rejected reservation #{$reservation->id}: {$reservation->event_name}. Reason: {$request->rejection_reason}",
+        ]);
         
         return redirect()->route('admin.reservations.index')
             ->with('success', 'Reservation rejected successfully. Email sent to the user.');

@@ -785,6 +785,14 @@
 
 <body>
     @yield('content')
+
+    <!-- Chatbot Widget -->
+    @auth
+        @if(!auth()->user()->isAdmin())
+            @include('partials.chatbot-widget')
+        @endif
+    @endauth
+
     @stack('scripts')
 </body>
 </html>
