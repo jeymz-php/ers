@@ -6,15 +6,15 @@
 @section('content')
 <style>
     .settings-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 25px;
+        max-width: 800px;
+        margin: 0 auto;
     }
     
     .settings-card {
         background: white;
         border-radius: 20px;
         padding: 25px;
+        margin-bottom: 25px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
     
@@ -129,9 +129,28 @@
         font-size: 16px;
     }
     
+    .password-field {
+        position: relative;
+    }
+    
+    .password-field input {
+        padding-right: 40px;
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #6e7f72;
+    }
+    
     @media (max-width: 768px) {
         .settings-container {
-            grid-template-columns: 1fr;
+            padding: 15px;
         }
     }
 </style>
@@ -153,24 +172,24 @@
             @csrf
             <div class="form-group">
                 <label>Current Password</label>
-                <div style="position: relative;">
-                    <input type="password" id="current_password" name="current_password" required style="width: 100%; padding: 10px 40px 10px 10px; border: 1px solid #e8eee9; border-radius: 8px;">
-                    <button type="button" onclick="togglePassword('current_password')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">👁️</button>
+                <div class="password-field">
+                    <input type="password" id="current_password" name="current_password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('current_password')">👁️</button>
                 </div>
             </div>
             <div class="form-group">
                 <label>New Password</label>
-                <div style="position: relative;">
-                    <input type="password" id="new_password" name="new_password" required style="width: 100%; padding: 10px 40px 10px 10px; border: 1px solid #e8eee9; border-radius: 8px;">
-                    <button type="button" onclick="togglePassword('new_password')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">👁️</button>
+                <div class="password-field">
+                    <input type="password" id="new_password" name="new_password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('new_password')">👁️</button>
                 </div>
                 <small style="font-size: 11px; color: #6e7f72;">Minimum 8 characters</small>
             </div>
             <div class="form-group">
                 <label>Confirm New Password</label>
-                <div style="position: relative;">
-                    <input type="password" id="new_password_confirmation" name="new_password_confirmation" required style="width: 100%; padding: 10px 40px 10px 10px; border: 1px solid #e8eee9; border-radius: 8px;">
-                    <button type="button" onclick="togglePassword('new_password_confirmation')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">👁️</button>
+                <div class="password-field">
+                    <input type="password" id="new_password_confirmation" name="new_password_confirmation" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('new_password_confirmation')">👁️</button>
                 </div>
             </div>
             <button type="submit" class="btn-primary">Update Password</button>
@@ -181,10 +200,10 @@
     <div class="settings-card">
         <div class="card-title">💾 Backup & Restore</div>
         
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <a href="{{ route('admin.settings.backup') }}" class="btn-secondary">Download Backup</a>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <a href="{{ route('admin.settings.backup') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">📥 Download Backup</a>
             <label class="btn-secondary" style="cursor: pointer; display: inline-block; text-align: center;">
-                Restore Backup
+                📤 Restore Backup
                 <input type="file" id="restoreFile" accept=".sql" style="display: none;">
             </label>
         </div>

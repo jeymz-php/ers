@@ -80,8 +80,10 @@ class UserManagementController extends Controller
     
     public function bulkApprove(Request $request)
     {
-        $ids = $request->ids;
-        if (empty($ids)) {
+        // Decode the JSON string to array
+        $ids = json_decode($request->ids, true);
+        
+        if (empty($ids) || !is_array($ids)) {
             return back()->with('error', 'No users selected');
         }
         

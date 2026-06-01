@@ -146,14 +146,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/campuses/{campusId}/establishments/{id}/toggle-status', [CampusManagementController::class, 'toggleEstablishmentStatus'])->name('campuses.establishments.toggle-status');
         Route::delete('/campuses/{campusId}/establishments/{id}', [CampusManagementController::class, 'destroyEstablishment'])->name('campuses.establishments.destroy');
         
-        // Settings
-        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-        Route::post('/settings/password', [SettingsController::class, 'changePassword'])->name('settings.password');
-        Route::get('/settings/backup', [SettingsController::class, 'backup'])->name('settings.backup');
-        Route::post('/settings/restore', [SettingsController::class, 'restore'])->name('settings.restore');
-        Route::get('/settings/backups/list', [SettingsController::class, 'getBackupList'])->name('settings.backups.list');
-        Route::get('/settings/backup/download/{filename}', [SettingsController::class, 'downloadBackup'])->name('settings.backup.download');
-        Route::delete('/settings/backup/delete/{filename}', [SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
+        // Admin Settings
+        Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/password', [App\Http\Controllers\Admin\SettingsController::class, 'changePassword'])->name('settings.password');
+        Route::get('/settings/backup', [App\Http\Controllers\Admin\SettingsController::class, 'backup'])->name('settings.backup');
+        Route::post('/settings/restore', [App\Http\Controllers\Admin\SettingsController::class, 'restore'])->name('settings.restore');
+        Route::get('/settings/backups/list', [App\Http\Controllers\Admin\SettingsController::class, 'getBackupList'])->name('settings.backups.list');
+        Route::get('/settings/backup/download/{filename}', [App\Http\Controllers\Admin\SettingsController::class, 'downloadBackup'])->name('settings.backup.download');
+        Route::delete('/settings/backup/delete/{filename}', [App\Http\Controllers\Admin\SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
         
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');

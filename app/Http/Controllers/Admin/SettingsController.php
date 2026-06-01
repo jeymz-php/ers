@@ -7,13 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SettingsController extends Controller
 {
     public function index()
     {
+        // Make sure only admin/super admin can access
+        if (!auth()->user()->isAdmin()) {
+            return redirect()->route('dashboard');
+        }
         return view('admin.settings.index');
     }
     
@@ -40,7 +43,6 @@ class SettingsController extends Controller
     public function backup()
     {
         try {
-            // Get database configuration
             $database = config('database.connections.mysql.database');
             $username = config('database.connections.mysql.username');
             $password = config('database.connections.mysql.password');
@@ -49,29 +51,31 @@ class SettingsController extends Controller
             $filename = 'ucc_ers_backup_' . date('Y-m-d_H-i-s') . '.sql';
             $backupPath = storage_path('app/backups/' . $filename);
             
-            // Create backups directory if not exists
             if (!file_exists(storage_path('app/backups'))) {
                 mkdir(storage_path('app/backups'), 0777, true);
             }
             
-            // Create backup using mysqldump
+            // For Windows XAMPP
+            $mysqldump = '"C:\\xampp\\mysql\\bin\\mysqldump"';
             $command = sprintf(
-                'mysqldump --user=%s --password=%s --host=%s %s > %s',
-                escapeshellarg($username),
-                escapeshellarg($password),
-                escapeshellarg($host),
-                escapeshellarg($database),
-                escapeshellarg($backupPath)
+                '%s --user=%s --password=%s --host=%s %s > "%s"',
+                $mysqldump,
+                $username,
+                $password,
+                $host,
+                $database,
+                $backupPath
             );
             
             exec($command, $output, $returnCode);
             
-            if ($returnCode === 0) {
+            if ($returnCode === 0 && file_exists($backupPath)) {
                 return response()->download($backupPath)->deleteFileAfterSend(true);
             } else {
-                return back()->with('error', 'Backup failed. Please check database permissions.');
+                return back()->with('error', 'Backup failed. Please check database configuration.');
             }
         } catch (\Exception $e) {
+            Log::error('Backup error: ' . $e->getMessage());
             return back()->with('error', 'Backup failed: ' . $e->getMessage());
         }
     }
@@ -86,12 +90,12 @@ class SettingsController extends Controller
             $file = $request->file('backup_file');
             $sql = file_get_contents($file->getRealPath());
             
-            // Execute SQL statements
             DB::unprepared($sql);
             
-            return back()->with('success', 'Database restored successfully!');
+            return response()->json(['success' => true, 'message' => 'Database restored successfully!']);
         } catch (\Exception $e) {
-            return back()->with('error', 'Restore failed: ' . $e->getMessage());
+            Log::error('Restore error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
     

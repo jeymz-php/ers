@@ -380,6 +380,7 @@
         }
         
         if (confirm(`Approve ${selected.length} user(s)?`)) {
+            // Send as JSON string, not as an array directly
             document.getElementById('selectedIds').value = JSON.stringify(selected);
             document.getElementById('bulkApproveForm').submit();
         }
