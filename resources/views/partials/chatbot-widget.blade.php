@@ -1,3 +1,10 @@
+@php
+    // Don't show chatbot on messages page
+    if(request()->routeIs('user.chat')) {
+        return;
+    }
+@endphp
+
 <style>
     .chatbot-widget {
         position: fixed;
@@ -416,6 +423,7 @@
             <button class="quick-action-btn" onclick="sendQuickMessage('create reservation')">📅 New Reservation</button>
             <button class="quick-action-btn" onclick="sendQuickMessage('my reservation status')">📊 Check Status</button>
             <button class="quick-action-btn" onclick="sendQuickMessage('list venues')">📍 List Venues</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('talk to admin')">💬 Talk to Admin</button>
             <button class="quick-action-btn" onclick="sendQuickMessage('help')">❓ Help</button>
         </div>
 
@@ -587,9 +595,6 @@
         const formData = new FormData();
         formData.append('message', message);
         
-        // DO NOT append files here - they are already uploaded separately
-        // Only send the message text
-        
         try {
             const response = await fetch('{{ route("chatbot.process") }}', {
                 method: 'POST',
@@ -603,10 +608,14 @@
             removeChatbotTyping();
             addChatbotMessage(data.message, 'bot');
             
-            if (data.intent === 'reservation_created') {
-                // Clear files after successful submission
-                attachedFiles = [];
-                displayFileList();
+            // Handle redirect to chat page
+            if (data.action === 'redirect_to_chat' && data.redirect_url) {
+                setTimeout(() => {
+                    addChatbotMessage('⏳ Redirecting you to the Messages page...', 'bot');
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 2000);
+                }, 500);
             }
             
         } catch (error) {

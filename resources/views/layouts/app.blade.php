@@ -788,7 +788,7 @@
 
     <!-- Chatbot Widget -->
     @auth
-        @if(!auth()->user()->isAdmin())
+        @if(!auth()->user()->isAdmin() && !request()->routeIs('user.chat') && !request()->routeIs('chatbot.index'))
             @include('partials.chatbot-widget')
         @endif
     @endauth

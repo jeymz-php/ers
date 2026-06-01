@@ -304,8 +304,13 @@
         <div class="card-title">📎 Attachments</div>
         <div class="equipment-list">
             @foreach($attachments as $attachment)
+                @php
+                    $filename = basename($attachment);
+                    $fileUrl = asset('uploads/reservations/2026/06/' . $filename);
+                @endphp
                 <div class="equipment-item">
                     📄 <a href="{{ Storage::url($attachment) }}" target="_blank">{{ basename($attachment) }}</a>
+                    <span style="margin-left: 10px; font-size: 11px; color: #6e7f72;">(Click to view)</span>
                 </div>
             @endforeach
         </div>
@@ -315,7 +320,7 @@
 
 <!-- Action Buttons -->
 <div class="action-buttons">
-    <a href="{{ route('report.single', $reservation->id) }}" class="btn-approve" style="background: #2db84f; text-decoration: none;" target="_blank">📄 Download Report</a>
+    <a href="{{ route('report.single', $reservation->id) }}" class="btn-approve" style="background: #2db84f; text-decoration: none;" target="_blank">📄 View Report</a>
     
     @if($reservation->status === 'pending')
         <form method="POST" action="{{ route('admin.reservations.approve', $reservation->id) }}" style="display: inline;">

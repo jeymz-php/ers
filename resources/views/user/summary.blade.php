@@ -439,7 +439,7 @@
                                 <td>{{ $submittedDate->format('M d, Y') }}</td>
                                 <td>
                                     <a href="#" class="btn-view" onclick="showReservationDetails({{ $res->id }})">View</a>
-                                    <a href="{{ route('report.single', $res->id) }}" class="btn-view" style="background: #dc2626;" target="_blank">📄 Report</a>
+                                    <a href="{{ route('report.single', $res->id) }}" class="btn-view" style="background: #dc2626;" target="_blank">📄 View Report</a>
                                 </td>
                             </tr>
                             @empty

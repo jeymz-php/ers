@@ -103,4 +103,14 @@ class User extends Authenticatable
     {
         return $this->belongsTo(User::class);
     }
+
+    public function activeChatSession()
+    {
+        return $this->hasOne(ChatSession::class, 'user_id')->where('is_active', true);
+    }
+
+    public function chatSessions()
+    {
+        return $this->hasMany(ChatSession::class, 'user_id');
+    }
 }

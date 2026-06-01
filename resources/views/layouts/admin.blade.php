@@ -659,6 +659,13 @@
                 <div class="nav-divider"></div>
 
                 <div class="nav-item">
+                    <a href="{{ route('admin.chat.index') }}" class="nav-link {{ request()->routeIs('admin.chat.*') ? 'active' : '' }}">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Messages</span>
+                    </a>
+                </div>
+
+                <div class="nav-item">
                     <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
                         <span class="nav-icon">⚙️</span>
                         <span class="nav-text">Settings</span>

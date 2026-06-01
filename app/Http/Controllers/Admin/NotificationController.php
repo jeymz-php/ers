@@ -94,11 +94,24 @@ class NotificationController extends Controller
                 'read_at' => now()
             ]);
             
-            // Redirect to the reservation view page
-            return redirect()->route('admin.reservations.show', $notification->reservation_id)
-                ->with('highlight', $notification->reservation_id);
+            // Check if it's a reservation notification (has reservation_id)
+            if ($notification->reservation_id) {
+                // Redirect to reservation page
+                return redirect()->route('admin.reservations.show', $notification->reservation_id)
+                    ->with('highlight', $notification->reservation_id);
+            } else {
+                // For chat notifications or other types, redirect to appropriate page
+                if ($notification->type === 'chat') {
+                    return redirect()->route('admin.chat.index')
+                        ->with('success', 'New message from user');
+                }
+                
+                // Default redirect to dashboard
+                return redirect()->route('admin.dashboard')
+                    ->with('info', 'Notification marked as read');
+            }
         }
         
-        return redirect()->route('admin.reservations.index');
+        return redirect()->route('admin.dashboard');
     }
 }

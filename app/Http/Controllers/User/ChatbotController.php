@@ -9,6 +9,8 @@ use App\Models\Campus;
 use App\Models\User;
 use App\Models\Notification;
 use App\Models\ChatbotSession;
+use App\Models\ChatSession;
+use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -30,81 +32,126 @@ class ChatbotController extends Controller
     
     public function processMessage(Request $request)
     {
-        $message = strtolower(trim($request->message));
-        $user = Auth::user();
-        
-        // Get or create session from database
-        $session = ChatbotSession::firstOrCreate(
-            ['user_id' => $user->id],
-            ['step' => 'idle', 'data' => []]
-        );
-        
-        // Handle file attachments
-        if ($request->hasFile('attachments')) {
-            return $this->handleFileUpload($request, $session);
+        try {
+            $message = strtolower(trim($request->message));
+            $user = Auth::user();
+            
+            // Get or create session from database
+            $session = ChatbotSession::firstOrCreate(
+                ['user_id' => $user->id],
+                ['step' => 'idle', 'data' => []]
+            );
+            
+            // Handle file attachments
+            if ($request->hasFile('attachments')) {
+                return $this->handleFileUpload($request, $session);
+            }
+            
+            // Handle cancel confirmation
+            if ($session->step === 'confirming_cancel') {
+                return $this->handleCancelConfirmation($message, $session, $user);
+            }
+            
+            // Handle reservation creation flow
+            if ($session->step === 'awaiting_event_name') {
+                return $this->handleEventName($message, $session, $user);
+            } 
+            elseif ($session->step === 'awaiting_event_dates') {
+                return $this->handleEventDates($message, $session, $user);
+            } 
+            elseif ($session->step === 'awaiting_start_time') {
+                return $this->handleStartTime($message, $session, $user);
+            } 
+            elseif ($session->step === 'awaiting_end_time') {
+                return $this->handleEndTime($message, $session, $user);
+            } 
+            elseif ($session->step === 'awaiting_venue') {
+                return $this->handleVenue($message, $session, $user);
+            } 
+            elseif ($session->step === 'awaiting_equipment') {
+                return $this->handleEquipment($message, $session, $user);
+            }
+            elseif ($session->step === 'awaiting_department') {
+                return $this->handleDepartment($message, $session, $user);
+            }
+            elseif ($session->step === 'awaiting_objectives') {
+                return $this->handleObjectives($message, $session, $user);
+            }
+            elseif ($session->step === 'confirming_reservation') {
+                return $this->handleConfirmation($message, $session, $user);
+            }
+            
+            // Intent recognition
+            if ($this->containsAny($message, ['create reservation', 'new reservation', 'book', 'reserve', 'schedule event', 'make a reservation', 'book venue'])) {
+                return $this->startReservationFlow($session, $user);
+            }
+            
+            elseif ($this->containsAny($message, ['status', 'my reservation', 'check reservation', 'reservation status', 'view reservation', 'my bookings'])) {
+                return $this->handleCheckStatus($user);
+            }
+            
+            elseif ($this->containsAny($message, ['cancel', 'delete reservation', 'remove reservation'])) {
+                return $this->handleCancelReservation($message, $user, $session);
+            }
+            
+            elseif ($this->containsAny($message, ['available', 'venues', 'establishments', 'what venues', 'list venues', 'show venues'])) {
+                return $this->handleListVenues($user);
+            }
+            
+            elseif ($this->containsAny($message, ['help', 'what can you do', 'commands', 'how to use', 'help me'])) {
+                return $this->handleHelp();
+            }
+            
+            elseif ($this->containsAny($message, ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'greetings'])) {
+                return $this->handleGreeting($user);
+            }
+            
+            elseif ($this->containsAny($message, ['talk to admin', 'chat with admin', 'contact admin', 'message admin', 'speak to admin', 'send message to admin'])) {
+                return $this->handleTalkToAdmin($user);
+            }
+            
+            else {
+                return $this->handleUnknown();
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Chatbot process error: ' . $e->getMessage());
+            return response()->json([
+                'message' => "Sorry, I encountered an error. Please try again."
+            ]);
         }
-        
-        // Handle cancel confirmation
-        if ($session->step === 'confirming_cancel') {
-            return $this->handleCancelConfirmation($message, $session, $user);
-        }
-        
-        // Handle reservation creation flow
-        if ($session->step === 'awaiting_event_name') {
-            return $this->handleEventName($message, $session, $user);
-        } 
-        elseif ($session->step === 'awaiting_event_dates') {
-            return $this->handleEventDates($message, $session, $user);
-        } 
-        elseif ($session->step === 'awaiting_start_time') {
-            return $this->handleStartTime($message, $session, $user);
-        } 
-        elseif ($session->step === 'awaiting_end_time') {
-            return $this->handleEndTime($message, $session, $user);
-        } 
-        elseif ($session->step === 'awaiting_venue') {
-            return $this->handleVenue($message, $session, $user);
-        } 
-        elseif ($session->step === 'awaiting_equipment') {
-            return $this->handleEquipment($message, $session, $user);
-        }
-        elseif ($session->step === 'awaiting_department') {
-            return $this->handleDepartment($message, $session, $user);
-        }
-        elseif ($session->step === 'awaiting_objectives') {
-            return $this->handleObjectives($message, $session, $user);
-        }
-        elseif ($session->step === 'confirming_reservation') {
-            return $this->handleConfirmation($message, $session, $user);
-        }
-        
-        // Intent recognition
-        if ($this->containsAny($message, ['create reservation', 'new reservation', 'book', 'reserve', 'schedule event', 'make a reservation', 'book venue'])) {
-            return $this->startReservationFlow($session, $user);
-        }
-        
-        elseif ($this->containsAny($message, ['status', 'my reservation', 'check reservation', 'reservation status', 'view reservation', 'my bookings'])) {
-            return $this->handleCheckStatus($user);
-        }
-        
-        elseif ($this->containsAny($message, ['cancel', 'delete reservation', 'remove reservation'])) {
-            return $this->handleCancelReservation($message, $user, $session);
-        }
-        
-        elseif ($this->containsAny($message, ['available', 'venues', 'establishments', 'what venues', 'list venues', 'show venues'])) {
-            return $this->handleListVenues($user);
-        }
-        
-        elseif ($this->containsAny($message, ['help', 'what can you do', 'commands', 'how to use', 'help me'])) {
-            return $this->handleHelp();
-        }
-        
-        elseif ($this->containsAny($message, ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'greetings'])) {
-            return $this->handleGreeting($user);
-        }
-        
-        else {
-            return $this->handleUnknown();
+    }
+    
+    private function handleTalkToAdmin($user)
+    {
+        try {
+            // Get all available admins
+            $availableAdmins = User::whereIn('role', ['admin', 'super_admin'])->get();
+            
+            if ($availableAdmins->isEmpty()) {
+                return response()->json([
+                    'message' => "Sorry, no administrators are available at the moment. Please try again later."
+                ]);
+            }
+            
+            // Show available admins to user
+            $adminList = '';
+            foreach ($availableAdmins as $admin) {
+                $adminList .= "• {$admin->name} (" . ucfirst($admin->role) . ")\n";
+            }
+            
+            return response()->json([
+                'intent' => 'talk_to_admin',
+                'message' => "👋 I can connect you with an administrator!\n\n📋 *Available Administrators:*\n{$adminList}\n\n💬 Please go to the Messages tab and select an administrator to start chatting.\n\n🔗 Click the Messages menu in the sidebar to continue.",
+                'action' => 'redirect_to_chat',
+                'redirect_url' => route('user.chat')
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Talk to admin error: ' . $e->getMessage());
+            return response()->json([
+                'message' => "Sorry, I couldn't connect you to an administrator right now. Please try again later."
+            ]);
         }
     }
     
@@ -118,8 +165,6 @@ class ChatbotController extends Controller
         
         $existingData = $session->data ?? [];
         $existingFiles = $existingData['attachments'] ?? [];
-        
-        // Merge files without duplicates (based on path)
         $allFiles = array_merge($existingFiles, $uploadedFiles);
         $allFiles = array_unique($allFiles);
         
@@ -718,7 +763,7 @@ class ChatbotController extends Controller
         
         return response()->json([
             'intent' => 'greeting',
-            'message' => "{$greeting}, {$user->name}! 👋\n\nI'm your UCC-ERS AI Assistant. I can help you:\n\n✅ *Create reservations*\n✅ *Check status*\n✅ *List venues*\n✅ *Cancel reservations*\n✅ *Upload files*\n\nWhat would you like to do today?"
+            'message' => "{$greeting}, {$user->name}! 👋\n\nI'm your UCC-ERS AI Assistant. I can help you:\n\n✅ *Create reservations*\n✅ *Check status*\n✅ *List venues*\n✅ *Cancel reservations*\n✅ *Upload files*\n✅ *Talk to admin*\n\nWhat would you like to do today?"
         ]);
     }
     
@@ -726,7 +771,7 @@ class ChatbotController extends Controller
     {
         return response()->json([
             'intent' => 'help',
-            'message' => "🤖 *UCC-ERS AI Assistant Help*\n\n📅 *Create Reservation* - 'create reservation'\n📊 *Check Status* - 'my reservation status'\n📍 *List Venues* - 'list venues'\n❌ *Cancel Reservation* - 'cancel reservation #123'\n📎 *Upload Files* - Click the 📎 button\n\nJust follow the prompts!"
+            'message' => "🤖 *UCC-ERS AI Assistant Help*\n\n📅 *Create Reservation* - 'create reservation'\n📊 *Check Status* - 'my reservation status'\n📍 *List Venues* - 'list venues'\n❌ *Cancel Reservation* - 'cancel reservation #123'\n📎 *Upload Files* - Click the 📎 button\n💬 *Talk to Admin* - 'talk to admin'\n\nJust follow the prompts!"
         ]);
     }
     
@@ -734,7 +779,7 @@ class ChatbotController extends Controller
     {
         return response()->json([
             'intent' => 'unknown',
-            'message' => "I'm not sure I understood that. 🤔\n\nTry:\n• 'create reservation'\n• 'my reservation status'\n• 'list venues'\n• 'help'"
+            'message' => "I'm not sure I understood that. 🤔\n\nTry:\n• 'create reservation'\n• 'my reservation status'\n• 'list venues'\n• 'talk to admin'\n• 'help'"
         ]);
     }
     

@@ -211,6 +211,13 @@
         </div>
         
         <div class="nav-divider"></div>
+
+        <div class="nav-item">
+            <a href="{{ route('user.chat') }}" class="nav-link {{ request()->routeIs('user.chat') ? 'active' : '' }}">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Messages</span>
+            </a>
+        </div>
         
         <div class="nav-item">
             <a href="{{ route('user.settings') }}" class="nav-link {{ request()->routeIs('user.settings') ? 'active' : '' }}">

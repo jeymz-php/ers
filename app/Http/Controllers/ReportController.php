@@ -20,26 +20,28 @@ class ReportController extends Controller
         $equipment = $remarks['equipment'] ?? [];
         $userType = $remarks['user_type'] ?? 'N/A';
         $department = $remarks['department'] ?? 'N/A';
+        $multipleDates = $remarks['multiple_dates'] ?? [$reservation->event_date];
         
         $data = [
             'reservation' => $reservation,
             'equipment' => $equipment,
             'userType' => $userType,
             'department' => $department,
+            'multipleDates' => $multipleDates,
             'generated_date' => Carbon::now()->format('F d, Y h:i A'),
         ];
         
         $pdf = Pdf::loadView('reports.single-reservation', $data);
         $pdf->setPaper('A4', 'portrait');
         
-        return $pdf->download('reservation_' . $reservation->id . '_' . date('Y-m-d') . '.pdf');
+        // Use stream() to display in browser, not download
+        return $pdf->stream('reservation_' . $reservation->id . '_' . date('Y-m-d') . '.pdf');
     }
     
     public function generateAllReport(Request $request)
     {
         $query = Reservation::with(['user', 'establishment', 'campus']);
         
-        // Apply filters
         if ($request->status && $request->status != 'all') {
             $query->where('status', $request->status);
         }
@@ -69,6 +71,7 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.all-reservations', $data);
         $pdf->setPaper('A4', 'landscape');
         
-        return $pdf->download('all_reservations_' . date('Y-m-d') . '.pdf');
+        // Return PDF inline (opens in browser)
+        return $pdf->stream('all_reservations_' . date('Y-m-d') . '.pdf');
     }
 }
