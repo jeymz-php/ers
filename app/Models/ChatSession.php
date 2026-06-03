@@ -12,6 +12,7 @@ class ChatSession extends Model
     protected $fillable = [
         'user_id',
         'admin_id',
+        'handled_by_admin_id',
         'is_active',
         'ended_at',
         'closing_message',
@@ -32,11 +33,14 @@ class ChatSession extends Model
         return $this->belongsTo(User::class, 'admin_id');
     }
 
-    public static function isSessionActive($userId)
+    public function handledBy()
     {
-        return self::where('user_id', $userId)
-            ->where('is_active', true)
-            ->exists();
+        return $this->belongsTo(User::class, 'handled_by_admin_id');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
     }
 
     public static function getActiveSession($userId)
@@ -46,25 +50,19 @@ class ChatSession extends Model
             ->first();
     }
 
-    public static function startOrGetSession($userId, $adminId)
+    public static function createNewSession($userId)
     {
-        $session = self::where('user_id', $userId)
+        // Close any existing active session
+        self::where('user_id', $userId)
             ->where('is_active', true)
-            ->first();
-        
-        if (!$session) {
-            $session = self::create([
-                'user_id' => $userId,
-                'admin_id' => $adminId,
-                'is_active' => true,
+            ->update([
+                'is_active' => false,
+                'ended_at' => now(),
             ]);
-        }
-        
-        return $session;
-    }
-    
-    public static function getAvailableAdmins()
-    {
-        return User::whereIn('role', ['admin', 'super_admin'])->get();
+
+        return self::create([
+            'user_id' => $userId,
+            'is_active' => true,
+        ]);
     }
 }

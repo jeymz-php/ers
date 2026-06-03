@@ -29,6 +29,24 @@ class ChatbotController extends Controller
         
         return view('user.chatbot', compact('campuses'));
     }
+
+    public function getChatHistory()
+    {
+        $user = Auth::user();
+        $session = ChatSession::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$session) {
+            return response()->json(['messages' => []]);
+        }
+
+        $messages = Message::where('session_id', $session->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return response()->json(['messages' => $messages]);
+    }
     
     public function processMessage(Request $request)
     {
@@ -116,6 +134,7 @@ class ChatbotController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Chatbot process error: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             return response()->json([
                 'message' => "Sorry, I encountered an error. Please try again."
             ]);
@@ -125,24 +144,43 @@ class ChatbotController extends Controller
     private function handleTalkToAdmin($user)
     {
         try {
-            // Get all available admins
-            $availableAdmins = User::whereIn('role', ['admin', 'super_admin'])->get();
+            // Create or get existing chat session
+            $session = ChatSession::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->first();
             
-            if ($availableAdmins->isEmpty()) {
-                return response()->json([
-                    'message' => "Sorry, no administrators are available at the moment. Please try again later."
+            if (!$session) {
+                $session = ChatSession::create([
+                    'user_id' => $user->id,
+                    'is_active' => true,
                 ]);
             }
             
-            // Show available admins to user
-            $adminList = '';
-            foreach ($availableAdmins as $admin) {
-                $adminList .= "• {$admin->name} (" . ucfirst($admin->role) . ")\n";
+            // Create a welcome message
+            $message = Message::create([
+                'sender_id' => null,
+                'receiver_id' => $user->id,
+                'session_id' => $session->id,
+                'message' => "👋 Hello! Customer support is now available.\n\nPlease type your message below and our team will respond shortly.",
+                'is_read' => false,
+            ]);
+            
+            // Notify all admins
+            $admins = User::whereIn('role', ['admin', 'super_admin'])->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'reservation_id' => null,
+                    'title' => '💬 New Chat Session Started',
+                    'message' => "User {$user->name} has started a chat session.",
+                    'type' => 'chat',
+                    'is_read' => false,
+                ]);
             }
             
             return response()->json([
                 'intent' => 'talk_to_admin',
-                'message' => "👋 I can connect you with an administrator!\n\n📋 *Available Administrators:*\n{$adminList}\n\n💬 Please go to the Messages tab and select an administrator to start chatting.\n\n🔗 Click the Messages menu in the sidebar to continue.",
+                'message' => "✅ Customer support chat started!\n\n📝 Our team will respond to your message shortly.\n\n💬 Please type your message below.\n\n🔗 Go to the Messages tab to see your conversation.",
                 'action' => 'redirect_to_chat',
                 'redirect_url' => route('user.chat')
             ]);
@@ -150,7 +188,7 @@ class ChatbotController extends Controller
         } catch (\Exception $e) {
             Log::error('Talk to admin error: ' . $e->getMessage());
             return response()->json([
-                'message' => "Sorry, I couldn't connect you to an administrator right now. Please try again later."
+                'message' => "Sorry, I couldn't connect you to customer support right now. Please try again later."
             ]);
         }
     }

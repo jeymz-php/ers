@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Messages')
-@section('page-title', 'User Messages')
+@section('title', 'Customer Support')
+@section('page-title', 'Chat Sessions')
 
 @section('content')
 <style>
@@ -20,7 +20,6 @@
         border-right: 1px solid #e8eee9;
         display: flex;
         flex-direction: column;
-        flex-shrink: 0;
     }
     
     .chat-sidebar-header {
@@ -35,12 +34,12 @@
         font-size: 16px;
     }
     
-    .user-list {
+    .sessions-list {
         flex: 1;
         overflow-y: auto;
     }
     
-    .user-item {
+    .session-item {
         padding: 15px 20px;
         display: flex;
         align-items: center;
@@ -51,16 +50,16 @@
         position: relative;
     }
     
-    .user-item:hover {
+    .session-item:hover {
         background: white;
     }
     
-    .user-item.active {
+    .session-item.active {
         background: white;
         border-left: 3px solid #2db84f;
     }
     
-    .user-avatar {
+    .session-avatar {
         width: 45px;
         height: 45px;
         background: linear-gradient(135deg, #1a7a3e, #2db84f);
@@ -71,27 +70,25 @@
         color: white;
         font-weight: bold;
         font-size: 18px;
-        flex-shrink: 0;
     }
     
-    .user-info {
+    .session-info {
         flex: 1;
         min-width: 0;
     }
     
-    .user-name {
+    .session-user {
         font-weight: 700;
         color: #1a7a3e;
         font-size: 14px;
     }
     
-    .last-message {
+    .session-last {
         font-size: 11px;
         color: #6e7f72;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        width: 180px;
     }
     
     .unread-badge {
@@ -103,28 +100,18 @@
         font-weight: bold;
     }
     
-    .session-badge {
+    .handled-badge {
         font-size: 10px;
         padding: 2px 6px;
         border-radius: 10px;
-        margin-left: 8px;
-    }
-    
-    .session-active {
         background: #d4f5df;
         color: #1a7a3e;
-    }
-    
-    .session-ended {
-        background: #e8eee9;
-        color: #6e7f72;
     }
     
     .chat-main {
         flex: 1;
         display: flex;
         flex-direction: column;
-        min-width: 0;
     }
     
     .chat-header {
@@ -134,58 +121,11 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-shrink: 0;
-        flex-wrap: wrap;
-        gap: 10px;
     }
     
     .chat-header h4 {
         margin: 0;
         color: #1a7a3e;
-        font-size: 16px;
-    }
-    
-    .header-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    
-    .status-indicator {
-        font-size: 12px;
-        color: #2db84f;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .refresh-btn {
-        background: #f0faf3;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        color: #1a7a3e;
-    }
-    
-    .refresh-btn:hover {
-        background: #2db84f;
-        color: white;
-    }
-    
-    .end-session-btn {
-        background: #dc2626;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        color: white;
-    }
-    
-    .end-session-btn:hover {
-        background: #b91c1c;
     }
     
     .chat-messages {
@@ -216,8 +156,7 @@
         padding: 10px 15px;
         border-radius: 18px;
         font-size: 13px;
-        line-height: 1.5;
-        word-wrap: break-word;
+        line-height: 1.45;
     }
     
     .message.sent .message-bubble {
@@ -233,28 +172,18 @@
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     
-    .message-attachment {
+    .message-image {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 10px;
         margin-top: 8px;
-    }
-    
-    .message-attachment a {
-        color: #2db84f;
-        text-decoration: none;
+        cursor: pointer;
     }
     
     .message-time {
         font-size: 10px;
         margin-top: 5px;
         opacity: 0.7;
-        text-align: center;
-    }
-    
-    .message-image {
-        max-width: 200px;
-        max-height: 200px;
-        border-radius: 8px;
-        margin-top: 8px;
-        cursor: pointer;
     }
     
     .chat-input-area {
@@ -263,7 +192,6 @@
         border-top: 1px solid #e8eee9;
         display: flex;
         gap: 10px;
-        flex-shrink: 0;
     }
     
     .chat-input {
@@ -272,17 +200,12 @@
         border: 1px solid #e8eee9;
         border-radius: 25px;
         outline: none;
-        font-size: 13px;
-    }
-    
-    .chat-input:focus {
-        border-color: #2db84f;
     }
     
     .file-attach-btn {
         background: #f0faf3;
         border: none;
-        width: 40px;
+        width: 42px;
         border-radius: 50%;
         cursor: pointer;
         font-size: 18px;
@@ -297,6 +220,16 @@
         cursor: pointer;
     }
     
+    .end-session-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    
     .no-chat-selected {
         display: flex;
         align-items: center;
@@ -307,69 +240,6 @@
         padding: 20px;
     }
     
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-    }
-    
-    .modal.active {
-        display: flex;
-    }
-    
-    .modal-content {
-        background: white;
-        border-radius: 16px;
-        padding: 25px;
-        width: 400px;
-        max-width: 90%;
-    }
-    
-    .modal-content h3 {
-        margin-bottom: 15px;
-        color: #1a7a3e;
-    }
-    
-    .modal-content textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #e8eee9;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        resize: vertical;
-    }
-    
-    .modal-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-    }
-    
-    .modal-buttons button {
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-    
-    .modal-buttons button:first-child {
-        background: #dc2626;
-        color: white;
-        border: none;
-    }
-    
-    .modal-buttons button:last-child {
-        background: #6e7f72;
-        color: white;
-        border: none;
-    }
-    
     @media (max-width: 768px) {
         .chat-sidebar {
             width: 250px;
@@ -377,57 +247,43 @@
         .message {
             max-width: 85%;
         }
-        .chat-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        .header-actions {
-            width: 100%;
-            justify-content: space-between;
-        }
     }
 </style>
 
 <div class="chat-container">
-    <div class="chat-sidebar" id="chatSidebar">
+    <div class="chat-sidebar">
         <div class="chat-sidebar-header">
-            <h3>💬 Conversations</h3>
+            <h3>💬 Active Chats</h3>
         </div>
-        <div class="user-list" id="userList">
-            @forelse($users as $conversation)
-            <div class="user-item" data-user-id="{{ $conversation['user']->id }}" onclick="selectUser({{ $conversation['user']->id }}, '{{ addslashes($conversation['user']->name) }}')">
-                <div class="user-avatar">{{ strtoupper(substr($conversation['user']->name, 0, 1)) }}</div>
-                <div class="user-info">
-                    <div class="user-name">{{ $conversation['user']->name }}</div>
-                    <div class="last-message">{{ Str::limit($conversation['last_message']->message ?? 'No messages', 30) }}</div>
+        <div class="sessions-list" id="sessionsList">
+            @forelse($sessions as $item)
+            <div class="session-item" onclick="selectSession({{ $item['session']->id }}, '{{ $item['user']->name }}')">
+                <div class="session-avatar">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</div>
+                <div class="session-info">
+                    <div class="session-user">{{ $item['user']->name }}</div>
+                    <div class="session-last">{{ Str::limit($item['last_message']->message ?? 'No messages', 30) }}</div>
                 </div>
-                @if($conversation['unread_count'] > 0)
-                    <span class="unread-badge">{{ $conversation['unread_count'] }}</span>
+                @if($item['unread_count'] > 0)
+                    <span class="unread-badge">{{ $item['unread_count'] }}</span>
                 @endif
-                <span class="session-badge {{ $conversation['session_active'] ? 'session-active' : 'session-ended' }}">
-                    {{ $conversation['session_active'] ? 'Active' : 'Ended' }}
-                </span>
+                @if($item['is_handled'])
+                    <span class="handled-badge">{{ $item['handled_by'] ? 'You' : 'Taken' }}</span>
+                @endif
             </div>
             @empty
-            <div class="no-chat-selected" style="padding: 20px; text-align: center;">No conversations yet</div>
+            <div class="no-chat-selected" style="padding: 20px; text-align: center;">No active chat sessions</div>
             @endforelse
         </div>
     </div>
 
     <div class="chat-main">
         <div class="chat-header">
-            <h4 id="selectedUserName">Select a user to start chatting</h4>
-            <div class="header-actions">
-                <div class="status-indicator" id="statusIndicator">
-                    <span>●</span> <span id="connectionStatus">Live</span>
-                </div>
-                <button class="refresh-btn" onclick="refreshMessages()">🔄 Refresh</button>
-                <button class="end-session-btn" id="endSessionBtn" onclick="showEndSessionModal()" style="display: none;">🔒 End Session</button>
-            </div>
+            <h4 id="selectedUserName">Select a chat session</h4>
+            <button class="end-session-btn" id="endSessionBtn" onclick="showEndSessionModal()" style="display: none;">🔒 End Session</button>
         </div>
         <div class="chat-messages" id="chatMessages">
             <div class="no-chat-selected">
-                Select a user from the left to view conversation.
+                Select a chat session from the left to start messaging.
             </div>
         </div>
         <div class="chat-input-area" id="chatInputArea" style="display: none;">
@@ -440,66 +296,51 @@
 </div>
 
 <!-- End Session Modal -->
-<div id="endSessionModal" class="modal">
-    <div class="modal-content">
-        <h3>🔒 End Chat Session</h3>
-        <textarea id="closingMessage" rows="4" placeholder="Enter closing message for the user..."></textarea>
-        <div class="modal-buttons">
-            <button onclick="endSession()">Confirm End</button>
-            <button onclick="closeModal()">Cancel</button>
+<div id="endSessionModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; padding: 25px; width: 400px; max-width: 90%;">
+        <h3 style="margin-bottom: 15px; color: #1a7a3e;">🔒 End Chat Session</h3>
+        <textarea id="closingMessage" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e8eee9; border-radius: 8px; margin-bottom: 15px;" placeholder="Enter closing message for the user..."></textarea>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="endSession()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Confirm</button>
+            <button onclick="closeModal()" style="background: #6e7f72; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Cancel</button>
         </div>
     </div>
 </div>
 
 <script>
-    let currentUserId = null;
+    let currentSessionId = null;
     let currentUserName = null;
     let lastMessageId = 0;
     let pollingInterval = null;
     let messageIds = new Set();
-    let currentSessionActive = false;
     
-    function selectUser(userId, userName) {
-        if (currentUserId === userId) return;
+    function selectSession(sessionId, userName) {
+        if (currentSessionId === sessionId) return;
         
-        currentUserId = userId;
+        currentSessionId = sessionId;
         currentUserName = userName;
         lastMessageId = 0;
         messageIds.clear();
         
-        const userNameElement = document.getElementById('selectedUserName');
-        if (userNameElement) {
-            userNameElement.innerText = userName;
-        }
+        document.getElementById('selectedUserName').innerText = userName;
+        document.getElementById('chatInputArea').style.display = 'flex';
+        document.getElementById('endSessionBtn').style.display = 'block';
         
-        const chatInputArea = document.getElementById('chatInputArea');
-        if (chatInputArea) {
-            chatInputArea.style.display = 'flex';
-        }
-        
-        // Clear messages container
-        const chatMessages = document.getElementById('chatMessages');
-        if (chatMessages) {
-            chatMessages.innerHTML = '';
-        }
+        document.getElementById('chatMessages').innerHTML = '';
         
         loadMessages();
         startPolling();
         
-        // Update active state in sidebar
-        document.querySelectorAll('.user-item').forEach(item => {
+        document.querySelectorAll('.session-item').forEach(item => {
             item.classList.remove('active');
         });
-        const selectedItem = document.querySelector(`.user-item[data-user-id="${userId}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('active');
-        }
+        event.currentTarget.classList.add('active');
     }
     
     function loadMessages() {
-        if (!currentUserId) return;
+        if (!currentSessionId) return;
         
-        fetch(`/admin/chat/messages/${currentUserId}?last_id=${lastMessageId}`)
+        fetch(`/admin/chat/messages/${currentSessionId}?last_id=${lastMessageId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -509,9 +350,6 @@
                             lastMessageId = data.latest_id;
                         }
                     }
-                    // Update session status
-                    currentSessionActive = data.session_active;
-                    updateSessionUI();
                 }
             })
             .catch(error => console.error('Error:', error));
@@ -521,7 +359,6 @@
         const container = document.getElementById('chatMessages');
         if (!container) return;
         
-        // Remove no-chat-selected if present
         if (container.querySelector('.no-chat-selected')) {
             container.innerHTML = '';
         }
@@ -558,42 +395,18 @@
         scrollToBottom();
     }
     
-    function updateSessionUI() {
-        const endSessionBtn = document.getElementById('endSessionBtn');
-        if (endSessionBtn) {
-            endSessionBtn.style.display = currentSessionActive ? 'block' : 'none';
-        }
-        
-        const statusIndicator = document.getElementById('statusIndicator');
-        if (statusIndicator) {
-            if (currentSessionActive) {
-                statusIndicator.style.color = '#2db84f';
-                document.getElementById('connectionStatus').innerText = 'Live';
-            } else {
-                statusIndicator.style.color = '#dc2626';
-                document.getElementById('connectionStatus').innerText = 'Session Ended';
-            }
-        }
-    }
-    
-    function refreshMessages() {
-        if (currentUserId) {
-            loadMessages();
-        }
-    }
-    
     function sendMessage() {
         const input = document.getElementById('chatInput');
         const message = input.value.trim();
         
-        if (!message && !currentUserId) return;
+        if (!message || !currentSessionId) return;
         
         addMessageToUI(message, true);
         input.value = '';
         
         const formData = new FormData();
         formData.append('message', message);
-        formData.append('receiver_id', currentUserId);
+        formData.append('session_id', currentSessionId);
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
         
         fetch('/admin/chat/send', {
@@ -605,14 +418,9 @@
             if (data.success && data.last_id) {
                 messageIds.add(data.last_id);
                 lastMessageId = data.last_id;
-            } else if (data.message) {
-                addMessageToUI('❌ ' + data.message, false);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            addMessageToUI('❌ Failed to send. Please try again.', false);
-        });
+        .catch(error => console.error('Error:', error));
     }
     
     function addMessageToUI(message, isSent) {
@@ -639,11 +447,11 @@
     
     function uploadFile(input) {
         const file = input.files[0];
-        if (!file || !currentUserId) return;
+        if (!file || !currentSessionId) return;
         
         const formData = new FormData();
         formData.append('attachment', file);
-        formData.append('receiver_id', currentUserId);
+        formData.append('session_id', currentSessionId);
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
         formData.append('message', '');
         
@@ -666,12 +474,11 @@
     
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
-        
         pollingInterval = setInterval(() => {
-            if (currentUserId) {
+            if (currentSessionId) {
                 loadMessages();
             }
-        }, 2000);
+        }, 3000);
     }
     
     function handleKeyPress(event) {
@@ -682,18 +489,15 @@
     
     function scrollToBottom() {
         const container = document.getElementById('chatMessages');
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        }
+        container.scrollTop = container.scrollHeight;
     }
     
     function showEndSessionModal() {
-        if (!currentSessionActive) return;
-        document.getElementById('endSessionModal').classList.add('active');
+        document.getElementById('endSessionModal').style.display = 'flex';
     }
     
     function closeModal() {
-        document.getElementById('endSessionModal').classList.remove('active');
+        document.getElementById('endSessionModal').style.display = 'none';
         document.getElementById('closingMessage').value = '';
     }
     
@@ -711,7 +515,7 @@
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({
-                user_id: currentUserId,
+                session_id: currentSessionId,
                 closing_message: message
             })
         })
@@ -720,9 +524,7 @@
             if (data.success) {
                 alert('Chat session ended successfully');
                 closeModal();
-                loadMessages();
-                currentSessionActive = false;
-                updateSessionUI();
+                location.reload();
             }
         });
     }
@@ -736,18 +538,6 @@
     
     window.addEventListener('beforeunload', function() {
         if (pollingInterval) clearInterval(pollingInterval);
-    });
-    
-    // Auto-select first user if any
-    document.addEventListener('DOMContentLoaded', function() {
-        const firstUser = document.querySelector('.user-item');
-        if (firstUser) {
-            const userId = firstUser.getAttribute('data-user-id');
-            const userName = firstUser.querySelector('.user-name')?.innerText || 'User';
-            if (userId) {
-                selectUser(parseInt(userId), userName);
-            }
-        }
     });
 </script>
 @endsection

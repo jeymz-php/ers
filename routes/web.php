@@ -81,7 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/chat', [App\Http\Controllers\User\ChatController::class, 'index'])->name('user.chat');
         Route::get('/chat/history', [ChatbotController::class, 'getChatHistory'])->name('chat.history');
         Route::post('/user/chat/send', [App\Http\Controllers\User\ChatController::class, 'sendMessage'])->name('user.chat.send');
-        Route::get('/user/chat/messages/{receiverId}', [App\Http\Controllers\User\ChatController::class, 'getMessages'])->name('user.chat.messages');
+        Route::get('/user/chat/messages', [App\Http\Controllers\User\ChatController::class, 'getMessages'])->name('user.chat.messages');
         Route::get('/user/chat/unread-count', [App\Http\Controllers\User\ChatController::class, 'getUnreadCount'])->name('user.chat.unread');
     });
     

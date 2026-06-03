@@ -298,7 +298,7 @@
                 <td>
                     <a href="{{ route('admin.reservations.show', $res->id) }}" class="btn-action btn-view" title="View Details">👁️</a>
                     <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #2db84f;" title="View Report" target="_blank">📄</a>
-                    <a href="{{ route('report.download.single', $res->id) }}" class="btn-action" style="color: #dc2626;" title="Download PDF">📄</a>
+                    <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #dc2626;" title="Download PDF">📄</a>
                     <form method="POST" action="{{ route('admin.reservations.destroy', $res->id) }}" style="display: inline;" onsubmit="return confirm('Delete this reservation?')">
                         @csrf
                         @method('DELETE')

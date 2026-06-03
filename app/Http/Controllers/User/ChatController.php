@@ -18,15 +18,24 @@ class ChatController extends Controller
     {
         $user = Auth::user();
         
-        // Get all admins (for user to choose from)
-        $admins = User::whereIn('role', ['admin', 'super_admin'])->get();
-        
-        // Get active session info
+        // Get active session
         $activeSession = ChatSession::where('user_id', $user->id)
             ->where('is_active', true)
             ->first();
         
-        return view('user.chat', compact('admins', 'activeSession'));
+        // Get all admins for display (but user doesn't choose)
+        $admins = User::whereIn('role', ['admin', 'super_admin'])->get();
+        
+        // Get last 50 messages from active session
+        $messages = [];
+        if ($activeSession) {
+            $messages = Message::where('session_id', $activeSession->id)
+                ->with(['sender', 'receiver'])
+                ->orderBy('created_at', 'asc')
+                ->get();
+        }
+        
+        return view('user.chat', compact('admins', 'activeSession', 'messages'));
     }
     
     public function sendMessage(Request $request)
@@ -34,24 +43,19 @@ class ChatController extends Controller
         try {
             $request->validate([
                 'message' => 'nullable|string|max:1000',
-                'receiver_id' => 'required|exists:users,id',
                 'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120'
             ]);
             
-            $receiverId = $request->receiver_id;
             $user = Auth::user();
             
-            // Check if there's an active session with THIS SPECIFIC admin
-            $activeSession = ChatSession::where('user_id', $user->id)
-                ->where('admin_id', $receiverId)
+            // Get or create active session
+            $session = ChatSession::where('user_id', $user->id)
                 ->where('is_active', true)
                 ->first();
             
-            // If no active session, auto-create one for this admin
-            if (!$activeSession) {
-                $activeSession = ChatSession::create([
+            if (!$session) {
+                $session = ChatSession::create([
                     'user_id' => $user->id,
-                    'admin_id' => $receiverId,
                     'is_active' => true,
                 ]);
             }
@@ -68,20 +72,21 @@ class ChatController extends Controller
             
             $message = Message::create([
                 'sender_id' => $user->id,
-                'receiver_id' => $receiverId,
+                'receiver_id' => null, // No specific receiver - broadcast to all admins
+                'session_id' => $session->id,
                 'message' => $request->message ?? '',
                 'attachment' => $attachmentPath,
                 'attachment_type' => $attachmentType,
                 'is_read' => false,
             ]);
             
-            // Create notification for the specific admin
-            $admin = User::find($receiverId);
-            if ($admin) {
+            // Create notifications for ALL admins
+            $admins = User::whereIn('role', ['admin', 'super_admin'])->get();
+            foreach ($admins as $admin) {
                 Notification::create([
                     'user_id' => $admin->id,
                     'reservation_id' => null,
-                    'title' => '💬 New Message from User',
+                    'title' => '💬 New Chat Message',
                     'message' => $user->name . ': ' . substr($request->message ?? 'Sent an attachment', 0, 50),
                     'type' => 'chat',
                     'is_read' => false,
@@ -103,16 +108,25 @@ class ChatController extends Controller
         }
     }
     
-    public function getMessages($receiverId, Request $request)
+    public function getMessages(Request $request)
     {
         $user = Auth::user();
         $lastId = $request->last_id ?? 0;
         
-        $query = Message::where(function($q) use ($user, $receiverId) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $receiverId);
-        })->orWhere(function($q) use ($user, $receiverId) {
-            $q->where('sender_id', $receiverId)->where('receiver_id', $user->id);
-        });
+        $session = ChatSession::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->first();
+        
+        if (!$session) {
+            return response()->json([
+                'success' => true,
+                'messages' => [],
+                'latest_id' => 0,
+                'session_active' => false
+            ]);
+        }
+        
+        $query = Message::where('session_id', $session->id);
         
         if ($lastId > 0) {
             $query->where('id', '>', $lastId);
@@ -120,46 +134,65 @@ class ChatController extends Controller
         
         $messages = $query->with(['sender', 'receiver'])->orderBy('created_at', 'asc')->get();
         
-        Message::where('receiver_id', $user->id)
-            ->where('sender_id', $receiverId)
+        // Mark messages as read
+        Message::where('session_id', $session->id)
+            ->where('receiver_id', null)
             ->where('is_read', false)
             ->update(['is_read' => true, 'read_at' => now()]);
         
-        $latestId = Message::where(function($q) use ($user, $receiverId) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $receiverId);
-        })->orWhere(function($q) use ($user, $receiverId) {
-            $q->where('sender_id', $receiverId)->where('receiver_id', $user->id);
-        })->max('id');
-        
-        // Check if there's an active session with THIS SPECIFIC admin
-        $activeSession = ChatSession::where('user_id', $user->id)
-            ->where('admin_id', $receiverId)
-            ->where('is_active', true)
-            ->first();
-        
-        // If no session exists, create one automatically
-        if (!$activeSession) {
-            $activeSession = ChatSession::create([
-                'user_id' => $user->id,
-                'admin_id' => $receiverId,
-                'is_active' => true,
-            ]);
-        }
+        $latestId = Message::where('session_id', $session->id)->max('id');
         
         return response()->json([
             'success' => true,
             'messages' => $messages,
             'latest_id' => $latestId,
-            'session_active' => true // Always true since we auto-create
+            'session_active' => true
         ]);
     }
     
     public function getUnreadCount()
     {
-        $count = Message::where('receiver_id', Auth::id())
+        $session = ChatSession::where('user_id', Auth::id())
+            ->where('is_active', true)
+            ->first();
+        
+        if (!$session) {
+            return response()->json(['count' => 0]);
+        }
+        
+        $count = Message::where('session_id', $session->id)
+            ->where('receiver_id', null)
             ->where('is_read', false)
+            ->where('sender_id', '!=', Auth::id())
             ->count();
         
         return response()->json(['count' => $count]);
+    }
+    
+    public function endSession(Request $request)
+    {
+        $user = Auth::user();
+        
+        $session = ChatSession::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->first();
+        
+        if ($session) {
+            $session->update([
+                'is_active' => false,
+                'ended_at' => now(),
+            ]);
+            
+            // Send closing message
+            Message::create([
+                'sender_id' => null,
+                'receiver_id' => $user->id,
+                'session_id' => $session->id,
+                'message' => "🔒 *Chat Session Ended*\n\nThank you for chatting with us. The conversation has been closed.\n\n💡 To start a new chat, type 'talk to admin' in the AI Assistant.",
+                'is_read' => false,
+            ]);
+        }
+        
+        return response()->json(['success' => true]);
     }
 }

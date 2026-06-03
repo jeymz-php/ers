@@ -12,6 +12,7 @@ class Message extends Model
     protected $fillable = [
         'sender_id',
         'receiver_id',
+        'session_id',
         'message',
         'attachment',
         'attachment_type',
@@ -34,21 +35,8 @@ class Message extends Model
         return $this->belongsTo(User::class, 'receiver_id');
     }
     
-    public function getAttachmentUrlAttribute()
+    public function session()
     {
-        if ($this->attachment) {
-            return asset('storage/' . $this->attachment);
-        }
-        return null;
-    }
-    
-    public function isImage()
-    {
-        return strpos($this->attachment_type, 'image') !== false;
-    }
-    
-    public function isPdf()
-    {
-        return $this->attachment_type === 'application/pdf';
+        return $this->belongsTo(ChatSession::class);
     }
 }
