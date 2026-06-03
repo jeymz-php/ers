@@ -296,13 +296,13 @@
                     </span>
                 </td>
                 <td>
-                    <a href="{{ route('admin.reservations.show', $res->id) }}" class="btn-action btn-view" title="View Details">👁️</a>
-                    <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #2db84f;" title="View Report" target="_blank">📄</a>
-                    <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #dc2626;" title="Download PDF">📄</a>
+                    <a href="{{ route('admin.reservations.show', $res->id) }}" class="btn-action btn-view" title="View Details">View Details</a>
+                    <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #2db84f;" title="Generate Report" target="_blank">Generate Report</a>
+                    <a href="{{ route('admin.reservations.edit', $res->id) }}" class="btn-action btn-edit" title="Edit Reservation">Edit Reservation</a>
                     <form method="POST" action="{{ route('admin.reservations.destroy', $res->id) }}" style="display: inline;" onsubmit="return confirm('Delete this reservation?')">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn-action btn-delete" title="Delete">🗑️</button>
+                        <button type="submit" class="btn-action btn-delete" title="Delete">Delete Reservation</button>
                     </form>
                 </td>
             </tr>

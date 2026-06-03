@@ -67,6 +67,17 @@
         background: #fef2f2;
         color: #dc2626;
     }
+    .badge-revised {
+        display: inline-block;
+        background: #fff4cc;
+        color: #9a6400;
+        border: 1px solid #f7e1a0;
+        padding: 4px 12px;
+        border-radius: 18px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 10px;
+    }
     
     .action-buttons {
         display: flex;
@@ -198,11 +209,16 @@
 <div class="detail-container">
     <!-- Left Column - Reservation Details -->
     <div class="detail-card">
-        <div class="card-title">📋 Reservation Information</div>
+        <div class="card-title">
+            📋 Reservation Information
+            @if(count($remarks['updated_fields'] ?? []) > 0)
+                <span class="badge-revised">REVISED</span>
+            @endif
+        </div>
         
         <div class="detail-row">
             <span class="detail-label">Reservation ID:</span>
-            <span class="detail-value">#{{ $reservation->id }}</span>
+            <span class="detail-value">#{{ $reservation->reservation_code }}</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Event Name:</span>
@@ -321,8 +337,9 @@
 <!-- Action Buttons -->
 <div class="action-buttons">
     <a href="{{ route('report.single', $reservation->id) }}" class="btn-approve" style="background: #2db84f; text-decoration: none;" target="_blank">📄 View Report</a>
+    <a href="{{ route('admin.reservations.edit', $reservation->id) }}" class="btn-approve" style="background: #1a7a3e; text-decoration: none;">✏️ Edit Reservation</a>
     
-    @if($reservation->status === 'pending')
+    @if(in_array($reservation->status, ['pending', 'approved', 'rejected']))
         <form method="POST" action="{{ route('admin.reservations.approve', $reservation->id) }}" style="display: inline;">
             @csrf
             <button type="submit" class="btn-approve" onclick="return confirm('Approve this reservation?')">✅ Approve Reservation</button>

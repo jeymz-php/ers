@@ -188,6 +188,28 @@
             font-size: 9px;
             color: #999;
         }
+        .highlight-row .info-value,
+        .info-value.highlight-row,
+        td.highlight-row,
+        .highlight-area {
+            background: #fff7e6;
+            border-radius: 6px;
+        }
+        .highlight-tag {
+            display: inline-block;
+            background: #ffefc4;
+            color: #8a5a00;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            margin-top: 4px;
+        }
+        .revised-note {
+            margin-bottom: 8px;
+            color: #1a7a3e;
+            font-size: 10px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -198,6 +220,7 @@
         $equipment     = $remarks['equipment'] ?? [];
         $userType      = $remarks['user_type'] ?? 'N/A';
         $department    = $remarks['department'] ?? 'N/A';
+        $updatedFields = $remarks['updated_fields'] ?? [];
     @endphp
 
     {{-- HEADER --}}
@@ -207,7 +230,7 @@
         </div>
         <div class="header-text">
             <div class="university">University of Caloocan City</div>
-            <div class="subtitle">Event Reservation System &nbsp;|&nbsp; Caloocan City, Philippines</div>
+            <div class="subtitle">Event Reservation System &nbsp;|&nbsp; Biglang Awa Street, Cor 11th Ave Catleya, Caloocan City</div>
         </div>
     </div>
 
@@ -221,6 +244,32 @@
 
     <div class="generated-date">Generated: {{ $generated_date }}</div>
 
+    @if(count($updatedFields) > 0)
+        <div class="section highlight-area">
+            <div class="section-title">REVISED DETAILS</div>
+            <p class="revised-note">This reservation was revised. Changes are highlighted below and summarized for your reference.</p>
+            <div class="info-grid">
+                @foreach($updatedFields as $field)
+                    <div class="info-row">
+                        <div class="info-label">{{ $field['label'] }}:</div>
+                        <div class="info-value">
+                            <strong>Before:</strong> {{ $field['old'] }}<br>
+                            <strong>After:</strong> {{ $field['new'] }}
+                        </div>
+                    </div>
+                @endforeach
+                @if(isset($remarks['last_revision_by']) || isset($remarks['last_revision_at']))
+                    <div class="info-row">
+                        <div class="info-label">Last Revised:</div>
+                        <div class="info-value">
+                            {{ $remarks['last_revision_by'] ?? 'Admin' }} on {{ $remarks['last_revision_at'] ?? 'Unknown' }}
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- TWO-COLUMN LAYOUT --}}
     <div class="two-col">
 
@@ -232,19 +281,19 @@
                 <div class="info-grid">
                     <div class="info-row">
                         <div class="info-label">Request ID:</div>
-                        <div class="info-value">#{{ $reservation->id }}</div>
+                        <div class="info-value">#{{ $reservation->reservation_code }}</div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row {{ isset($updatedFields['event_name']) ? 'highlight-row' : '' }}">
                         <div class="info-label">Event Name:</div>
-                        <div class="info-value">{{ $reservation->event_name }}</div>
+                        <div class="info-value {{ isset($updatedFields['event_name']) ? 'highlight-row' : '' }}">{{ $reservation->event_name }}</div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row {{ isset($updatedFields['description']) ? 'highlight-row' : '' }}">
                         <div class="info-label">Objectives:</div>
-                        <div class="info-value">{{ $reservation->description ?? 'No objectives provided' }}</div>
+                        <div class="info-value {{ isset($updatedFields['description']) ? 'highlight-row' : '' }}">{{ $reservation->description ?? 'No objectives provided' }}</div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row {{ isset($updatedFields['event_dates']) ? 'highlight-row' : '' }}">
                         <div class="info-label">Date(s):</div>
-                        <div class="info-value">
+                        <div class="info-value {{ isset($updatedFields['event_dates']) ? 'highlight-row' : '' }}">
                             @if($isMultiDate)
                                 <strong>{{ count($multipleDates) }} dates:</strong>
                                 <ul class="date-list">
@@ -274,7 +323,7 @@
 
             <div class="section">
                 <div class="section-title">REQUESTED EQUIPMENT</div>
-                <div class="equipment-list">
+                <div class="equipment-list {{ isset($updatedFields['equipment']) ? 'highlight-area' : '' }}">
                     @forelse($equipment as $item)
                         <div class="equipment-item">&bull; {{ $item }}</div>
                     @empty
@@ -291,11 +340,11 @@
             <div class="section">
                 <div class="section-title">VENUE</div>
                 <div class="info-grid">
-                    <div class="info-row">
+                    <div class="info-row {{ isset($updatedFields['campus']) ? 'highlight-row' : '' }}">
                         <div class="info-label">Campus:</div>
                         <div class="info-value">{{ $reservation->campus->name ?? 'N/A' }}</div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row {{ isset($updatedFields['establishment']) ? 'highlight-row' : '' }}">
                         <div class="info-label">Establishment:</div>
                         <div class="info-value">{{ $reservation->establishment->name ?? 'N/A' }}</div>
                     </div>
@@ -345,8 +394,8 @@
             <tbody>
                 <tr>
                     <td>{{ $reservation->user->name ?? 'Unknown' }}</td>
-                    <td>{{ ucfirst($userType) }}</td>
-                    <td>{{ $department }}</td>
+                    <td class="{{ isset($updatedFields['user_type']) ? 'highlight-row' : '' }}">{{ ucfirst($userType) }}</td>
+                    <td class="{{ isset($updatedFields['department']) ? 'highlight-row' : '' }}">{{ $department }}</td>
                     <td>{{ $reservation->user->email ?? 'N/A' }}</td>
                     <td>{{ $reservation->user->phone_number ?? 'N/A' }}</td>
                 </tr>
@@ -377,7 +426,7 @@
     </div>
 
     <div class="footer">
-        This is a system-generated report. For concerns, contact the UCC-ERS administrator. &nbsp;&bull;&nbsp;
+        This is a system-generated report. For concerns, contact the UCC-ERS Administrator. &nbsp;&bull;&nbsp;
         &copy; {{ date('Y') }} University of Caloocan City. All rights reserved.
     </div>
 </body>

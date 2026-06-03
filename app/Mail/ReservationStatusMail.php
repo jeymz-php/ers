@@ -26,9 +26,12 @@ class ReservationStatusMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $subject = $this->status === 'approved' 
-            ? 'Your Reservation Has Been Approved - UCC-ERS'
-            : 'Update on Your Reservation - UCC-ERS';
+        $subject = match ($this->status) {
+            'approved' => 'Your Reservation Has Been Approved - UCC-ERS',
+            'updated' => 'Your Reservation Has Been Updated - UCC-ERS',
+            'rejected' => 'Update on Your Reservation - UCC-ERS',
+            default => 'Reservation Update - UCC-ERS',
+        };
             
         return new Envelope(
             subject: $subject,
@@ -46,17 +49,13 @@ class ReservationStatusMail extends Mailable
     {
         $attachments = [];
         
-        // Attach PDF report only if approved
-        if ($this->status === 'approved') {
+        // Attach PDF report for approved or updated emails
+        if (in_array($this->status, ['approved', 'updated'])) {
             $remarks = json_decode($this->reservation->remarks, true);
             $equipment = $remarks['equipment'] ?? [];
             $userType = $remarks['user_type'] ?? 'N/A';
             $department = $remarks['department'] ?? 'N/A';
             $multipleDates = $remarks['multiple_dates'] ?? [$this->reservation->event_date];
-            
-            $nameParts = explode(' ', $this->reservation->user->name);
-            $firstName = $nameParts[0] ?? '';
-            $lastName = end($nameParts) ?? '';
             
             $data = [
                 'reservation' => $this->reservation,
@@ -70,7 +69,7 @@ class ReservationStatusMail extends Mailable
             $pdf = Pdf::loadView('reports.single-reservation', $data);
             $pdfContent = $pdf->output();
             
-            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromData(fn () => $pdfContent, 'reservation_' . $this->reservation->id . '.pdf')
+            $attachments[] = \Illuminate\Mail\Mailables\Attachment::fromData(fn () => $pdfContent, 'reservation_' . $this->reservation->reservation_code . '.pdf')
                 ->withMime('application/pdf');
         }
         

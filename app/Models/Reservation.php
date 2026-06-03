@@ -41,4 +41,20 @@ class Reservation extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function getReservationCodeAttribute()
+    {
+        $prefixMap = [
+            'MC' => 'SOUTH',
+            'CEC' => 'CONGRESS',
+            'CAM' => 'CAMARIN',
+            'BS' => 'BS',
+        ];
+
+        $campusCode = strtoupper($this->campus?->code ?? 'GEN');
+        $prefix = $prefixMap[$campusCode] ?? $campusCode;
+        $number = $this->id ? str_pad($this->id, 5, '0', STR_PAD_LEFT) : strtoupper(substr(md5(now()->timestamp), 0, 6));
+
+        return "$prefix-$number";
+    }
 }

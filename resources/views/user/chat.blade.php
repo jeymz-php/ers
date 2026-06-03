@@ -385,6 +385,7 @@
     let pollingInterval = null;
     let messageIds = new Set();
     let sessionActive = {{ $activeSession && $activeSession->is_active ? 'true' : 'false' }};
+    let sessionEndedBannerShown = {{ $activeSession && $activeSession->is_active ? 'false' : 'true' }};
     
     function loadMessages() {
         fetch(`/user/chat/messages?last_id=${lastMessageId}`)
@@ -397,18 +398,37 @@
                             lastMessageId = data.latest_id;
                         }
                     }
-                    sessionActive = data.session_active;
-                    
-                    // Update input state
-                    const chatInput = document.getElementById('chatInput');
-                    const sendBtn = document.querySelector('.chat-send');
-                    if (chatInput && sendBtn) {
-                        chatInput.disabled = !sessionActive;
-                        sendBtn.disabled = !sessionActive;
+
+                    // Detect session just ended
+                    if (sessionActive && !data.session_active) {
+                        sessionActive = false;
+                        lockUserInput();
                     }
+                    sessionActive = data.session_active;
                 }
             })
             .catch(error => console.error('Error:', error));
+    }
+
+    function lockUserInput() {
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn   = document.querySelector('.chat-send');
+        const fileBtn   = document.querySelector('.file-attach-btn');
+        const inputArea = document.getElementById('chatInputArea');
+
+        if (chatInput) chatInput.disabled = true;
+        if (sendBtn)   sendBtn.disabled   = true;
+        if (fileBtn)   fileBtn.disabled   = true;
+
+        if (!sessionEndedBannerShown) {
+            sessionEndedBannerShown = true;
+            if (inputArea) {
+                const banner = document.createElement('div');
+                banner.style.cssText = 'text-align:center;padding:10px 15px;background:#fef2f2;color:#dc2626;font-size:12px;border-top:1px solid #fecaca;';
+                banner.innerHTML = '🔒 This session has been ended by the administrator. Type <strong>"talk to admin"</strong> in the AI Assistant to start a new conversation.';
+                inputArea.parentNode.insertBefore(banner, inputArea);
+            }
+        }
     }
     
     function appendNewMessages(messages) {

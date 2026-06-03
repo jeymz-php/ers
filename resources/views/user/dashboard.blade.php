@@ -13,11 +13,13 @@
     body {
         background: #f0faf3;
         font-family: 'Arial', sans-serif;
+        overflow-x: hidden;
     }
 
     .user-container {
         display: flex;
         min-height: 100vh;
+        overflow-x: hidden;
     }
 
     .user-main {
@@ -107,6 +109,12 @@
         display: flex;
         gap: 8px;
         align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .view-switch {
+        display: flex;
+        gap: 8px;
     }
 
     .nav-btn {
@@ -120,7 +128,8 @@
         transition: all 0.3s;
     }
 
-    .nav-btn:hover {
+    .nav-btn:hover,
+    .nav-btn.active {
         background: #1a7a3e;
         color: white;
     }
@@ -352,6 +361,138 @@
             min-height: 80px;
         }
     }
+
+    @media (max-width: 768px) {
+        .content-area {
+            padding: 18px 14px;
+        }
+
+        .welcome-banner {
+            padding: 16px 16px;
+        }
+
+        .welcome-text {
+            font-size: 14px;
+        }
+
+        .calendar-wrapper,
+        .scheduled-events,
+        .upcoming-events {
+            padding: 16px;
+        }
+
+        .calendar-header {
+            gap: 10px;
+        }
+
+        .month-title {
+            font-size: 18px;
+        }
+
+        .calendar-weekdays,
+        .calendar-days {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 5px;
+        }
+
+        .calendar-day {
+            min-height: 70px;
+            padding: 6px;
+        }
+
+        .day-number {
+            font-size: 11px;
+        }
+
+        .event-badge {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            font-size: 10px;
+            max-width: 100%;
+        }
+
+        .event-item {
+            flex-wrap: wrap;
+        }
+
+        .event-time {
+            min-width: 70px;
+            width: auto;
+        }
+
+        .panel-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .events-list {
+            max-height: none;
+        }
+
+        .dashboard-layout {
+            gap: 18px;
+        }
+    }
+
+    @media (max-width: 540px) {
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-days {
+            display: grid;
+            gap: 10px;
+            overflow-x: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .calendar-days.month-view {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+
+        .calendar-days.week-view {
+            grid-template-columns: 1fr;
+        }
+
+        .calendar-days.month-view .day-events {
+            display: none;
+        }
+
+        .calendar-days.month-view .calendar-day.has-event .day-number {
+            background: #2db84f;
+            color: white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day {
+            min-width: 0;
+            min-height: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            word-break: break-word;
+            scroll-snap-align: start;
+        }
+
+        .day-number {
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .calendar-wrapper {
+            overflow: visible;
+        }
+    }
 </style>
 
 <div class="user-container">
@@ -376,10 +517,14 @@
                     <div class="calendar-header">
                         <div class="month-title" id="monthTitle">{{ $currentMonth }} {{ $currentYear }}</div>
                         <div class="calendar-nav">
-                            <button class="nav-btn" onclick="changeMonth(-1)">←</button>
-                            <button class="nav-btn today-btn" onclick="goToToday()">Today</button>
-                            <button class="nav-btn" onclick="changeMonth(1)">→</button>
+                        <div class="view-switch">
+                            <button id="monthBtn" class="nav-btn active" onclick="setView('month')">Month</button>
+                            <button id="weekBtn" class="nav-btn" onclick="setView('week')">Week</button>
                         </div>
+                        <button class="nav-btn" onclick="changeView(-1)">←</button>
+                        <button class="nav-btn today-btn" onclick="goToToday()">Today</button>
+                        <button class="nav-btn" onclick="changeView(1)">→</button>
+                    </div>
                     </div>
 
                     <div class="calendar-weekdays">
@@ -427,12 +572,57 @@
     let currentYear = currentDate.getFullYear();
     let selectedDateStr = '';
     let eventsData = {};
+    let currentView = 'month';
+
+    function getWeekStart(date) {
+        const result = new Date(date);
+        const dayOfWeek = result.getDay();
+        result.setDate(result.getDate() - dayOfWeek);
+        result.setHours(0, 0, 0, 0);
+        return result;
+    }
+
+    function formatWeekTitle(date) {
+        const weekStart = getWeekStart(date);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        const options = { month: 'short', day: 'numeric' };
+        return `Week of ${weekStart.toLocaleDateString('en-US', options)} - ${weekEnd.toLocaleDateString('en-US', options)}`;
+    }
+
+    function setView(mode) {
+        if (currentView === mode) return;
+
+        currentView = mode;
+        document.getElementById('monthBtn').classList.toggle('active', mode === 'month');
+        document.getElementById('weekBtn').classList.toggle('active', mode === 'week');
+
+        if (mode === 'month') {
+            currentMonth = currentDate.getMonth();
+            currentYear = currentDate.getFullYear();
+        } else {
+            currentDate = new Date();
+        }
+
+        selectedDateStr = '';
+        document.getElementById('selectedDateBadge').innerHTML = 'Select a date';
+        document.getElementById('scheduledEventsList').innerHTML = '<div class="no-events">Click on a date to view events</div>';
+
+        loadEvents();
+    }
 
     function loadEvents() {
-        const url = `/user/dashboard/events?month=${currentMonth + 1}&year=${currentYear}`;
-        
-        console.log('Loading events for month:', currentMonth + 1, currentYear);
-        
+        if (currentView === 'month') {
+            return fetchEventsForMonth(currentMonth, currentYear);
+        }
+
+        return fetchEventsForWeek(currentDate);
+    }
+
+    function fetchEventsForMonth(month, year) {
+        const url = `/user/dashboard/events?month=${month + 1}&year=${year}`;
+        console.log('Loading events for month:', month + 1, year);
+
         return fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -446,6 +636,46 @@
             })
             .catch(error => {
                 console.error('Error loading events:', error);
+                return false;
+            });
+    }
+
+    function fetchEventsForWeek(anchorDate) {
+        const weekStart = getWeekStart(anchorDate);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+
+        const monthYearPairs = new Map();
+        const cursor = new Date(weekStart);
+        while (cursor <= weekEnd) {
+            monthYearPairs.set(`${cursor.getMonth()}-${cursor.getFullYear()}`, {
+                month: cursor.getMonth(),
+                year: cursor.getFullYear(),
+            });
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        eventsData = {};
+        const fetchPromises = Array.from(monthYearPairs.values()).map(({ month, year }) => {
+            const url = `/user/dashboard/events?month=${month + 1}&year=${year}`;
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Object.assign(eventsData, data.events);
+                    }
+                });
+        });
+
+        console.log('Loading events for week starting:', weekStart.toDateString());
+
+        return Promise.all(fetchPromises)
+            .then(() => {
+                renderCalendar();
+                return true;
+            })
+            .catch(error => {
+                console.error('Error loading events for week:', error);
                 return false;
             });
     }
@@ -465,17 +695,31 @@
     }
 
     function renderCalendar() {
+        if (currentView === 'week') {
+            renderWeekCalendar();
+        } else {
+            renderMonthCalendar();
+        }
+    }
+
+    function formatMonthTitle(year, month) {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${monthNames[month]} ${year}`;
+    }
+
+    function renderMonthCalendar() {
         const firstDay = new Date(currentYear, currentMonth, 1);
         const lastDay = new Date(currentYear, currentMonth + 1, 0);
         const startingDay = firstDay.getDay();
         const daysInMonth = lastDay.getDate();
-        
+
         let calendarHTML = '';
         let dayCounter = 1;
         const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         for (let i = 0; i < 42; i++) {
             let dayNumber = '';
             let isCurrentMonth = true;
@@ -484,7 +728,7 @@
             let isPast = false;
             let dateStr = '';
             let dayEvents = [];
-            
+
             if (i < startingDay) {
                 dayNumber = prevMonthLastDay - (startingDay - i) + 1;
                 isCurrentMonth = false;
@@ -500,23 +744,23 @@
                 dayNumber = dayCounter;
                 dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
                 dayCounter++;
-                
+
                 const checkDate = new Date(currentYear, currentMonth, dayNumber);
                 if (checkDate.toDateString() === today.toDateString()) {
                     isToday = true;
                 }
-                
+
                 if (checkDate < today) {
                     isPast = true;
                 }
-                
+
                 if (selectedDateStr === dateStr) {
                     isSelected = true;
                 }
-                
+
                 dayEvents = eventsData[dateStr] || [];
             }
-            
+
             let eventBadgesHtml = '';
             if (dayEvents.length > 0) {
                 eventBadgesHtml = '<div class="day-events">';
@@ -535,20 +779,72 @@
                 }
                 eventBadgesHtml += '</div>';
             }
-            
+
             calendarHTML += `
-                <div class="calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''}"
+                <div class="calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''} ${dayEvents.length > 0 ? 'has-event' : ''}"
                      onclick="${!isPast ? `selectDate('${dateStr}')` : ''}">
                     <div class="day-number">${dayNumber}</div>
                     ${eventBadgesHtml}
                 </div>
             `;
         }
-        
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-        document.getElementById('monthTitle').textContent = `${monthNames[currentMonth]} ${currentYear}`;
-        document.getElementById('calendarDays').innerHTML = calendarHTML;
+
+        document.getElementById('monthTitle').textContent = formatMonthTitle(currentYear, currentMonth);
+        const calendarDaysEl = document.getElementById('calendarDays');
+        calendarDaysEl.innerHTML = calendarHTML;
+        calendarDaysEl.classList.toggle('month-view', currentView === 'month');
+        calendarDaysEl.classList.toggle('week-view', currentView === 'week');
+    }
+
+    function renderWeekCalendar() {
+        const weekStart = getWeekStart(currentDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let calendarHTML = '';
+        for (let i = 0; i < 7; i++) {
+            const thisDay = new Date(weekStart);
+            thisDay.setDate(weekStart.getDate() + i);
+            const dayNumber = thisDay.getDate();
+            const dateStr = `${thisDay.getFullYear()}-${String(thisDay.getMonth() + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+            const isToday = thisDay.toDateString() === today.toDateString();
+            const isSelected = selectedDateStr === dateStr;
+            const isPast = thisDay < today;
+            const dayEvents = eventsData[dateStr] || [];
+
+            let eventBadgesHtml = '';
+            if (dayEvents.length > 0) {
+                eventBadgesHtml = '<div class="day-events">';
+                dayEvents.slice(0, 2).forEach(event => {
+                    const isMultiDate = event.is_multi_date;
+                    const multiDateClass = isMultiDate ? 'multi-date' : '';
+                    eventBadgesHtml += `
+                        <div class="event-badge ${multiDateClass}" title="${event.title} - ${event.time} - ${event.venue}${isMultiDate ? ' (Multiple Dates)' : ''}">
+                            📍 ${event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title}
+                            ${isMultiDate ? '<span style="background: #ff9800; padding: 1px 4px; border-radius: 8px; font-size: 8px; margin-left: 4px;">📅📅</span>' : ''}
+                        </div>
+                    `;
+                });
+                if (dayEvents.length > 2) {
+                    eventBadgesHtml += `<div class="event-badge" style="background: #e8eee9;">+${dayEvents.length - 2} more</div>`;
+                }
+                eventBadgesHtml += '</div>';
+            }
+
+            calendarHTML += `
+                <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''}"
+                     onclick="${!isPast ? `selectDate('${dateStr}')` : ''}">
+                    <div class="day-number">${dayNumber}</div>
+                    ${eventBadgesHtml}
+                </div>
+            `;
+        }
+
+        document.getElementById('monthTitle').textContent = formatWeekTitle(currentDate);
+        const calendarDaysEl = document.getElementById('calendarDays');
+        calendarDaysEl.innerHTML = calendarHTML;
+        calendarDaysEl.classList.toggle('month-view', currentView === 'month');
+        calendarDaysEl.classList.toggle('week-view', currentView === 'week');
     }
 
     function selectDate(dateStr) {
@@ -632,20 +928,25 @@
         document.getElementById('upcomingEventsList').innerHTML = eventsHTML;
     }
 
-    function changeMonth(direction) {
-        currentMonth += direction;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
-        } else if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
+    function changeView(direction) {
+        if (currentView === 'month') {
+            currentMonth += direction;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            currentDate = new Date(currentYear, currentMonth, 1);
+        } else {
+            currentDate.setDate(currentDate.getDate() + direction * 7);
         }
-        
+
         selectedDateStr = '';
         document.getElementById('selectedDateBadge').innerHTML = 'Select a date';
         document.getElementById('scheduledEventsList').innerHTML = '<div class="no-events">Click on a date to view events</div>';
-        
+
         loadEvents().then(() => {
             loadUpcomingEvents();
         });
@@ -653,11 +954,12 @@
 
     function goToToday() {
         const today = new Date();
+        currentDate = new Date(today);
         currentYear = today.getFullYear();
         currentMonth = today.getMonth();
-        
+
         const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        
+
         loadEvents().then(() => {
             selectDate(todayStr);
             loadUpcomingEvents();

@@ -22,6 +22,11 @@ class Campus extends Model
         return $this->hasMany(User::class);
     }
 
+    public function establishments()
+    {
+        return $this->hasMany(Establishment::class);
+    }
+
     public static function getActiveCampuses()
     {
         return self::where('is_active', true)

@@ -59,6 +59,160 @@ class ReservationManagementController extends Controller
         
         return view('admin.reservations.show', compact('reservation', 'remarks'));
     }
+
+    public function edit($id)
+    {
+        $reservation = Reservation::with(['user', 'establishment', 'campus'])->findOrFail($id);
+        $remarks = json_decode($reservation->remarks, true);
+        $campuses = Campus::where('is_active', true)->with(['establishments' => function ($query) {
+            $query->where('is_active', true)->orderBy('name');
+        }])->orderBy('display_order')->get();
+
+        return view('admin.reservations.edit', compact('reservation', 'remarks', 'campuses'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $reservation = Reservation::with(['user', 'establishment', 'campus'])->findOrFail($id);
+        $existingRemarks = json_decode($reservation->remarks, true) ?? [];
+
+        $request->validate([
+            'event_name' => 'required|string|max:200',
+            'event_objectives' => 'nullable|string',
+            'campus_id' => 'required|exists:campuses,id',
+            'establishment_id' => 'required|exists:establishments,id',
+            'event_dates' => 'required|string',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+            'user_type' => 'required|in:student,professor',
+            'department' => 'nullable|string',
+            'equipment' => 'nullable|string',
+        ]);
+
+        $establishment = Establishment::findOrFail($request->establishment_id);
+        if ($establishment->campus_id != $request->campus_id) {
+            return redirect()->back()->withErrors(['establishment_id' => 'The selected venue does not belong to the selected campus.'])->withInput();
+        }
+
+        $eventDates = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $request->event_dates)));
+        if (empty($eventDates)) {
+            return redirect()->back()->withErrors(['event_dates' => 'Please provide at least one event date.'])->withInput();
+        }
+
+        try {
+            $normalizedDates = [];
+            foreach ($eventDates as $date) {
+                $normalizedDates[] = \Carbon\Carbon::parse($date)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['event_dates' => 'One or more dates are invalid. Use YYYY-MM-DD format.'])->withInput();
+        }
+
+        $equipment = [];
+        if ($request->equipment) {
+            $equipment = array_filter(array_map('trim', explode(',', $request->equipment)));
+        }
+
+        // Check for time conflicts with other approved reservations for the same venue.
+        $conflicts = [];
+        foreach ($normalizedDates as $eventDate) {
+            $conflict = Reservation::where('establishment_id', $establishment->id)
+                ->where('status', 'approved')
+                ->where('id', '!=', $reservation->id)
+                ->where('event_date', $eventDate)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                        ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                        ->orWhere(function ($subQ) use ($request) {
+                            $subQ->where('start_time', '<=', $request->start_time)
+                                ->where('end_time', '>=', $request->end_time);
+                        });
+                })
+                ->exists();
+
+            if ($conflict) {
+                $conflicts[] = $eventDate;
+            }
+        }
+
+        if (!empty($conflicts)) {
+            return redirect()->back()->withErrors(['event_dates' => 'The following dates are already booked for this venue: ' . implode(', ', $conflicts)])->withInput();
+        }
+
+        $originalDates = $existingRemarks['multiple_dates'] ?? [$reservation->event_date];
+        $originalEquipment = is_array($existingRemarks['equipment'] ?? null)
+            ? $existingRemarks['equipment']
+            : array_filter(array_map('trim', explode(',', $existingRemarks['equipment'] ?? '')));
+
+        $normalizedOriginalDates = array_map(function ($date) {
+            return \Carbon\Carbon::parse($date)->format('Y-m-d');
+        }, $originalDates);
+        sort($normalizedOriginalDates);
+        sort($normalizedDates);
+
+        $updatedFields = [];
+
+        $fieldsToCompare = [
+            'event_name' => ['label' => 'Event Name', 'old' => $reservation->event_name, 'new' => $request->event_name],
+            'description' => ['label' => 'Objectives', 'old' => $reservation->description ?? '', 'new' => $request->event_objectives ?? ''],
+            'campus' => ['label' => 'Campus', 'old' => $reservation->campus->name ?? '', 'new' => $establishment->campus->name ?? ''],
+            'establishment' => ['label' => 'Venue', 'old' => $reservation->establishment->name ?? '', 'new' => $establishment->name],
+            'event_dates' => [
+                'label' => 'Event Dates',
+                'old' => implode(', ', array_map(function ($date) { return \Carbon\Carbon::parse($date)->format('F d, Y'); }, $normalizedOriginalDates)),
+                'new' => implode(', ', array_map(function ($date) { return \Carbon\Carbon::parse($date)->format('F d, Y'); }, $normalizedDates)),
+            ],
+            'start_time' => ['label' => 'Start Time', 'old' => \Carbon\Carbon::parse($reservation->start_time)->format('g:i A'), 'new' => \Carbon\Carbon::parse($request->start_time)->format('g:i A')],
+            'end_time' => ['label' => 'End Time', 'old' => \Carbon\Carbon::parse($reservation->end_time)->format('g:i A'), 'new' => \Carbon\Carbon::parse($request->end_time)->format('g:i A')],
+            'user_type' => ['label' => 'User Type', 'old' => $existingRemarks['user_type'] ?? 'N/A', 'new' => $request->user_type],
+            'department' => ['label' => 'Department', 'old' => $existingRemarks['department'] ?? '', 'new' => $request->department ?? ''],
+            'equipment' => ['label' => 'Equipment', 'old' => implode(', ', $originalEquipment), 'new' => implode(', ', $equipment)],
+        ];
+
+        foreach ($fieldsToCompare as $key => $field) {
+            if (trim($field['old']) !== trim($field['new'])) {
+                $updatedFields[$key] = [
+                    'label' => $field['label'],
+                    'old' => $field['old'] === '' ? 'None' : $field['old'],
+                    'new' => $field['new'] === '' ? 'None' : $field['new'],
+                ];
+            }
+        }
+
+        $remarks = array_merge($existingRemarks, [
+            'user_type' => $request->user_type,
+            'department' => $request->department,
+            'equipment' => $equipment,
+            'multiple_dates' => $normalizedDates,
+            'is_multi_date' => count($normalizedDates) > 1,
+            'attachments' => $existingRemarks['attachments'] ?? [],
+            'updated_fields' => $updatedFields,
+            'last_revision_by' => auth()->user()->name,
+            'last_revision_at' => now()->format('F d, Y h:i A'),
+            'admin_notes' => 'Reservation details revised by ' . auth()->user()->name . ' on ' . now()->format('F d, Y h:i A'),
+        ]);
+
+        $reservation->update([
+            'event_name' => $request->event_name,
+            'description' => $request->event_objectives,
+            'establishment_id' => $establishment->id,
+            'campus_id' => $establishment->campus_id,
+            'event_date' => $normalizedDates[0],
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'remarks' => json_encode($remarks),
+        ]);
+
+        // Send updated reservation email with revised report
+        try {
+            Mail::to($reservation->user->email)->send(new ReservationStatusMail($reservation->fresh(), 'updated'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send reservation update email: ' . $e->getMessage());
+        }
+
+        return redirect()->route('admin.reservations.show', $reservation->id)
+            ->with('success', 'Reservation details updated successfully. The user has been notified by email.');
+    }
     
     public function approve($id)
     {

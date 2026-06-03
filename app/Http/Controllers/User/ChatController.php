@@ -110,43 +110,44 @@ class ChatController extends Controller
     
     public function getMessages(Request $request)
     {
-        $user = Auth::user();
+        $user   = Auth::user();
         $lastId = $request->last_id ?? 0;
-        
+
+        // Look up most recent session (active OR just-ended) so the
+        // closing message is delivered even after is_active = false
         $session = ChatSession::where('user_id', $user->id)
-            ->where('is_active', true)
+            ->orderBy('created_at', 'desc')
             ->first();
-        
+
         if (!$session) {
             return response()->json([
-                'success' => true,
-                'messages' => [],
-                'latest_id' => 0,
-                'session_active' => false
+                'success'        => true,
+                'messages'       => [],
+                'latest_id'      => 0,
+                'session_active' => false,
             ]);
         }
-        
+
         $query = Message::where('session_id', $session->id);
-        
         if ($lastId > 0) {
             $query->where('id', '>', $lastId);
         }
-        
+
         $messages = $query->with(['sender', 'receiver'])->orderBy('created_at', 'asc')->get();
-        
+
         // Mark messages as read
         Message::where('session_id', $session->id)
-            ->where('receiver_id', null)
+            ->where('receiver_id', $user->id)
             ->where('is_read', false)
             ->update(['is_read' => true, 'read_at' => now()]);
-        
+
         $latestId = Message::where('session_id', $session->id)->max('id');
-        
+
         return response()->json([
-            'success' => true,
-            'messages' => $messages,
-            'latest_id' => $latestId,
-            'session_active' => true
+            'success'        => true,
+            'messages'       => $messages,
+            'latest_id'      => $latestId,
+            'session_active' => (bool) $session->is_active,
         ]);
     }
     

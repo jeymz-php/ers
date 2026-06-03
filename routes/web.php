@@ -13,7 +13,8 @@ use App\Http\Controllers\User\SettingsController;
 use App\Http\Controllers\User\ChatbotController;
 use App\Http\Controllers\User\ChatController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\AvailabilityController;
+use App\Http\Controllers\Admin\AvailabilityController as AdminAvailabilityController;
+use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\AdminManagementController;
 use App\Http\Controllers\Admin\ReservationManagementController;
@@ -41,6 +42,10 @@ Route::middleware('guest')->group(function () {
     Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
     Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
+
+Route::get('/availability', [AvailabilityController::class, 'index'])->name('public.availability.index');
+Route::get('/availability/events', [AvailabilityController::class, 'getEvents'])->name('public.availability.events');
+Route::get('/availability/day', [AvailabilityController::class, 'getDayEvents'])->name('public.availability.day');
 
 /*
 |--------------------------------------------------------------------------
@@ -120,10 +125,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
         // Availability Calendar
-        Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability.index');
-        Route::get('/availability/events', [AvailabilityController::class, 'getEvents'])->name('availability.events');
-        Route::get('/availability/day', [AvailabilityController::class, 'getDayEvents'])->name('availability.day');
-        Route::get('/availability/upcoming', [AvailabilityController::class, 'getUpcomingEvents'])->name('availability.upcoming');
+        Route::get('/availability', [AdminAvailabilityController::class, 'index'])->name('availability.index');
+        Route::get('/availability/events', [AdminAvailabilityController::class, 'getEvents'])->name('availability.events');
+        Route::get('/availability/day', [AdminAvailabilityController::class, 'getDayEvents'])->name('availability.day');
+        Route::get('/availability/upcoming', [AdminAvailabilityController::class, 'getUpcomingEvents'])->name('availability.upcoming');
         
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
@@ -136,6 +141,8 @@ Route::middleware('auth')->group(function () {
         // Reservation Management
         Route::get('/reservations', [ReservationManagementController::class, 'index'])->name('reservations.index');
         Route::get('/reservations/{id}', [ReservationManagementController::class, 'show'])->name('reservations.show');
+        Route::get('/reservations/{id}/edit', [ReservationManagementController::class, 'edit'])->name('reservations.edit');
+        Route::put('/reservations/{id}', [ReservationManagementController::class, 'update'])->name('reservations.update');
         Route::post('/reservations/{id}/approve', [ReservationManagementController::class, 'approve'])->name('reservations.approve');
         Route::post('/reservations/{id}/reject', [ReservationManagementController::class, 'reject'])->name('reservations.reject');
         Route::delete('/reservations/{id}', [ReservationManagementController::class, 'destroy'])->name('reservations.destroy');

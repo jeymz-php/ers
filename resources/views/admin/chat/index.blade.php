@@ -297,12 +297,19 @@
 
 <!-- End Session Modal -->
 <div id="endSessionModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 16px; padding: 25px; width: 400px; max-width: 90%;">
-        <h3 style="margin-bottom: 15px; color: #1a7a3e;">🔒 End Chat Session</h3>
-        <textarea id="closingMessage" rows="4" style="width: 100%; padding: 10px; border: 1px solid #e8eee9; border-radius: 8px; margin-bottom: 15px;" placeholder="Enter closing message for the user..."></textarea>
+    <div style="background: white; border-radius: 16px; padding: 25px; width: 420px; max-width: 90%;">
+        <h3 style="margin-bottom: 10px; color: #dc2626;">🔒 End Chat Session</h3>
+        <p style="color: #555; font-size: 13px; margin-bottom: 18px;">
+            Are you sure you want to end the session with <strong id="endSessionUserName"></strong>?<br><br>
+            A closing message will be automatically sent to the user and they will no longer be able to reply.
+        </p>
+        <div style="background: #f7faf8; border: 1px solid #e8eee9; border-radius: 8px; padding: 12px; margin-bottom: 18px; font-size: 12px; color: #6e7f72; font-style: italic;">
+            📩 The user will receive:<br><br>
+            "Your chat session has been officially closed. If you need further assistance, type <em>talk to admin</em> in the AI Assistant."
+        </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button onclick="endSession()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Confirm</button>
-            <button onclick="closeModal()" style="background: #6e7f72; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Cancel</button>
+            <button onclick="endSession()" style="background: #dc2626; color: white; border: none; padding: 9px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">✅ Yes, End Session</button>
+            <button onclick="closeModal()" style="background: #e8eee9; color: #3c4a3f; border: none; padding: 9px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
         </div>
     </div>
 </div>
@@ -493,40 +500,53 @@
     }
     
     function showEndSessionModal() {
+        document.getElementById('endSessionUserName').innerText = currentUserName;
         document.getElementById('endSessionModal').style.display = 'flex';
     }
     
     function closeModal() {
         document.getElementById('endSessionModal').style.display = 'none';
-        document.getElementById('closingMessage').value = '';
     }
     
     function endSession() {
-        const message = document.getElementById('closingMessage').value;
-        if (!message) {
-            alert('Please enter a closing message');
-            return;
-        }
-        
         fetch('/admin/chat/end-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({
-                session_id: currentSessionId,
-                closing_message: message
-            })
+            body: JSON.stringify({ session_id: currentSessionId })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Chat session ended successfully');
                 closeModal();
-                location.reload();
+                lockSessionUI();
+                // Remove session from sidebar
+                document.querySelectorAll('.session-item').forEach(item => {
+                    if (item.classList.contains('active')) item.remove();
+                });
             }
         });
+    }
+
+    function lockSessionUI() {
+        const chatInput   = document.getElementById('chatInput');
+        const sendBtn     = document.querySelector('.chat-send');
+        const inputArea   = document.getElementById('chatInputArea');
+        const endBtn      = document.getElementById('endSessionBtn');
+        if (chatInput)  chatInput.disabled  = true;
+        if (sendBtn)    sendBtn.disabled    = true;
+        if (endBtn)     endBtn.style.display = 'none';
+        if (inputArea) {
+            inputArea.style.pointerEvents = 'none';
+            inputArea.style.opacity       = '0.5';
+        }
+        // Add ended banner
+        const banner = document.createElement('div');
+        banner.style.cssText = 'text-align:center;padding:10px;background:#fef2f2;color:#dc2626;font-size:12px;border-top:1px solid #fecaca;';
+        banner.innerHTML = '🔒 Session ended. The user can no longer reply.';
+        inputArea.parentNode.insertBefore(banner, inputArea);
     }
     
     function escapeHtml(text) {

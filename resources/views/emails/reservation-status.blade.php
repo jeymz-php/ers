@@ -140,6 +140,13 @@
                     Dear <strong>{{ $reservation->user->name }}</strong>,<br>
                     Great news! Your reservation has been approved.
                 </p>
+            @elseif($status === 'updated')
+                <div class="status-icon status-approved">✎</div>
+                <h1 class="greeting">Reservation Updated</h1>
+                <p class="message">
+                    Dear <strong>{{ $reservation->user->name }}</strong>,<br>
+                    Your reservation details have been revised. Please review the updated event information below.
+                </p>
             @else
                 <div class="status-icon status-rejected">✗</div>
                 <h1 class="greeting">Reservation Update</h1>
@@ -150,6 +157,10 @@
             @endif
             
             <div class="details-card">
+                <div class="detail-row">
+                    <span class="detail-label">Reservation ID:</span>
+                    <span>#{{ $reservation->reservation_code }}</span>
+                </div>
                 <div class="detail-row">
                     <span class="detail-label">Event Name:</span>
                     <span>{{ $reservation->event_name }}</span>
