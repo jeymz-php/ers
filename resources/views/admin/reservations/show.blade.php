@@ -267,6 +267,10 @@
             <span class="detail-label">Approved On:</span>
             <span class="detail-value">{{ \Carbon\Carbon::parse($reservation->approved_at)->format('F d, Y g:i A') }}</span>
         </div>
+        <div class="detail-row">
+            <span class="detail-label">Approved By:</span>
+            <span class="detail-value">{{ $reservation->approver ? $reservation->approver->name : 'N/A' }}</span>
+        </div>
         @endif
     </div>
     

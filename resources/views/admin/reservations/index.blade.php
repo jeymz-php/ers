@@ -226,7 +226,10 @@
     </form>
 </div>
 
-<div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+<div style="display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 10px; flex-wrap: wrap;">
+    <a href="{{ route('admin.reservations.create') }}" class="generate-report-btn" style="background: #1a7a3e;">
+        ➕ Add Reservation
+    </a>
     <a href="{{ route('report.all') }}?{{ http_build_query(request()->query()) }}" class="generate-report-btn" target="_blank">
         📊 Generate Report
     </a>

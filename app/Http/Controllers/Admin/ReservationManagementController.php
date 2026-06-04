@@ -71,6 +71,117 @@ class ReservationManagementController extends Controller
         return view('admin.reservations.edit', compact('reservation', 'remarks', 'campuses'));
     }
 
+    public function create()
+    {
+        $campuses = Campus::where('is_active', true)->with(['establishments' => function ($query) {
+            $query->where('is_active', true)->orderBy('name');
+        }])->orderBy('display_order')->get();
+
+        $users = User::whereIn('role', ['admin', 'super_admin'])
+            ->where('account_status', 'approved')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.reservations.create', compact('campuses', 'users'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'event_name' => 'required|string|max:200',
+            'event_objectives' => 'nullable|string',
+            'campus_id' => 'required|exists:campuses,id',
+            'establishment_id' => 'required|exists:establishments,id',
+            'event_dates' => 'required|string',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+            'user_type' => 'required|in:student,professor,admin',
+            'department' => 'nullable|string',
+            'equipment' => 'nullable|string',
+        ]);
+
+        $establishment = Establishment::findOrFail($request->establishment_id);
+        if ($establishment->campus_id != $request->campus_id) {
+            return redirect()->back()->withErrors(['establishment_id' => 'The selected venue does not belong to the selected campus.'])->withInput();
+        }
+
+        $eventDates = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $request->event_dates)));
+        if (empty($eventDates)) {
+            return redirect()->back()->withErrors(['event_dates' => 'Please provide at least one event date.'])->withInput();
+        }
+
+        try {
+            $normalizedDates = [];
+            foreach ($eventDates as $date) {
+                $normalizedDates[] = Carbon::parse($date)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['event_dates' => 'One or more dates are invalid. Use YYYY-MM-DD format.'])->withInput();
+        }
+
+        $equipment = [];
+        if ($request->equipment) {
+            $equipment = array_filter(array_map('trim', explode(',', $request->equipment)));
+        }
+
+        $conflicts = [];
+        foreach ($normalizedDates as $eventDate) {
+            $conflict = Reservation::where('establishment_id', $establishment->id)
+                ->whereIn('status', ['approved', 'pending'])
+                ->where('event_date', $eventDate)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                        ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                        ->orWhere(function ($subQ) use ($request) {
+                            $subQ->where('start_time', '<=', $request->start_time)
+                                ->where('end_time', '>=', $request->end_time);
+                        });
+                })
+                ->exists();
+
+            if ($conflict) {
+                $conflicts[] = $eventDate;
+            }
+        }
+
+        if (!empty($conflicts)) {
+            return redirect()->back()->withErrors(['event_dates' => 'The following dates are already booked for this venue: ' . implode(', ', $conflicts)])->withInput();
+        }
+
+        sort($normalizedDates);
+
+        $reservation = Reservation::create([
+            'user_id' => $request->user_id,
+            'establishment_id' => $establishment->id,
+            'campus_id' => $establishment->campus_id,
+            'event_name' => $request->event_name,
+            'description' => $request->event_objectives,
+            'event_date' => $normalizedDates[0],
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+            'remarks' => json_encode([
+                'user_type' => $request->user_type,
+                'department' => $request->department,
+                'equipment' => $equipment,
+                'multiple_dates' => $normalizedDates,
+                'is_multi_date' => count($normalizedDates) > 1,
+            ]),
+        ]);
+
+        try {
+            Mail::to($reservation->user->email)->send(new ReservationStatusMail($reservation, 'approved'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send reservation email after admin-created reservation: ' . $e->getMessage());
+        }
+
+        return redirect()->route('admin.reservations.show', $reservation->id)
+            ->with('success', 'Reservation created and approved successfully. The user has been notified by email.');
+    }
+
     public function update(Request $request, $id)
     {
         $reservation = Reservation::with(['user', 'establishment', 'campus'])->findOrFail($id);

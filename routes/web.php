@@ -141,6 +141,8 @@ Route::middleware('auth')->group(function () {
         
         // Reservation Management
         Route::get('/reservations', [ReservationManagementController::class, 'index'])->name('reservations.index');
+        Route::get('/reservations/create', [ReservationManagementController::class, 'create'])->name('reservations.create');
+        Route::post('/reservations', [ReservationManagementController::class, 'store'])->name('reservations.store');
         Route::get('/reservations/{id}', [ReservationManagementController::class, 'show'])->name('reservations.show');
         Route::get('/reservations/{id}/edit', [ReservationManagementController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{id}', [ReservationManagementController::class, 'update'])->name('reservations.update');

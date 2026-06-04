@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Reservation')
-@section('page-title', 'Edit Reservation')
+@section('title', 'Add Reservation')
+@section('page-title', 'Add Reservation')
 
 @section('content')
 <style>
@@ -86,20 +86,14 @@
     }
 </style>
 
-@php
-    $multipleDates = $remarks['multiple_dates'] ?? [$reservation->event_date];
-    $eventDatesText = implode("\n", $multipleDates);
-    $equipmentText = is_array($remarks['equipment'] ?? null) ? implode(', ', $remarks['equipment']) : ($remarks['equipment'] ?? '');
-@endphp
-
 <div class="edit-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div>
-            <div class="status-badge">Reservation ID: #{{ $reservation->reservation_code }}</div>
-            <h2 style="margin: 0; font-size: 28px; color: #1a7a3e;">Edit Reservation Details</h2>
-            <p style="margin: 8px 0 0; color: #6e7f72;">Update the event details, venue, dates, or schedule. Conflicts are checked automatically before saving.</p>
+            <div class="status-badge">Create a new reservation event</div>
+            <h2 style="margin: 0; font-size: 28px; color: #1a7a3e;">Add Reservation</h2>
+            <p style="margin: 8px 0 0; color: #6e7f72;">Create a reservation as an admin or super admin. This reservation will be approved immediately.</p>
         </div>
-        <a href="{{ route('admin.reservations.show', $reservation->id) }}" class="button-secondary">Back to Details</a>
+        <a href="{{ route('admin.reservations.index') }}" class="button-secondary">Back to List</a>
     </div>
 
     @if($errors->any())
@@ -113,91 +107,101 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.reservations.update', $reservation->id) }}">
+    <form method="POST" action="{{ route('admin.reservations.store') }}">
         @csrf
-        @method('PUT')
 
         <div class="form-row">
             <div class="form-group">
-                <label for="event_name">Event Name</label>
-                <input type="text" id="event_name" name="event_name" value="{{ old('event_name', $reservation->event_name) }}" required>
+                <label for="user_id">Admin</label>
+                <select id="user_id" name="user_id" required>
+                    <option value="">Select an admin</option>
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
+                            {{ $user->name }} ({{ ucfirst($user->role) }})
+                        </option>
+                    @endforeach
+                </select>
             </div>
+            <div class="form-group">
+                <label for="event_name">Event Name</label>
+                <input type="text" id="event_name" name="event_name" value="{{ old('event_name') }}" required>
+            </div>
+        </div>
+
+        <div class="form-row">
             <div class="form-group">
                 <label for="user_type">User Type</label>
                 <select id="user_type" name="user_type" required>
-                    <option value="student" {{ old('user_type', $remarks['user_type'] ?? '') === 'student' ? 'selected' : '' }}>Student</option>
-                    <option value="professor" {{ old('user_type', $remarks['user_type'] ?? '') === 'professor' ? 'selected' : '' }}>Professor</option>
-                    <option value="admin" {{ old('user_type', $remarks['user_type'] ?? '') === 'admin' ? 'selected' : '' }}>Admin</option>
+                    <option value="student" {{ old('user_type') === 'student' ? 'selected' : '' }}>Student</option>
+                    <option value="professor" {{ old('user_type') === 'professor' ? 'selected' : '' }}>Professor</option>
+                    <option value="admin" {{ old('user_type') === 'admin' ? 'selected' : '' }}>Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="campus_id">Campus</label>
+                <select id="campus_id" name="campus_id" required onchange="updateEstablishments()">
+                    <option value="">Select campus</option>
+                    @foreach($campuses as $campus)
+                        <option value="{{ $campus->id }}" {{ old('campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="campus_id">Campus</label>
-                <select id="campus_id" name="campus_id" required onchange="updateEstablishments()">
-                    <option value="">Select campus</option>
-                    @foreach($campuses as $campusItem)
-                        <option value="{{ $campusItem->id }}" {{ old('campus_id', $reservation->campus_id) == $campusItem->id ? 'selected' : '' }}>{{ $campusItem->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group">
                 <label for="establishment_id">Venue</label>
                 <select id="establishment_id" name="establishment_id" required>
                     <option value="">Select venue</option>
-                    @foreach($campuses as $campusItem)
-                        @foreach($campusItem->establishments as $est)
-                            <option value="{{ $est->id }}" data-campus="{{ $campusItem->id }}" {{ old('establishment_id', $reservation->establishment_id) == $est->id ? 'selected' : '' }}>
-                                {{ $campusItem->name }} / {{ $est->name }}
+                    @foreach($campuses as $campus)
+                        @foreach($campus->establishments as $est)
+                            <option value="{{ $est->id }}" data-campus="{{ $campus->id }}" {{ old('establishment_id') == $est->id ? 'selected' : '' }}>
+                                {{ $campus->name }} / {{ $est->name }}
                             </option>
                         @endforeach
                     @endforeach
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="department">Department</label>
+                <input type="text" id="department" name="department" value="{{ old('department') }}">
             </div>
         </div>
 
         <div class="form-row">
             <div class="form-group">
                 <label for="event_dates">Event Dates</label>
-                <textarea id="event_dates" name="event_dates" placeholder="YYYY-MM-DD, one date per line" required>{{ old('event_dates', $eventDatesText) }}</textarea>
+                <textarea id="event_dates" name="event_dates" placeholder="YYYY-MM-DD, one date per line" required>{{ old('event_dates') }}</textarea>
                 <span class="form-note">Enter one date per line or separated by commas.</span>
             </div>
             <div class="form-group">
-                <label for="department">Department</label>
-                <input type="text" id="department" name="department" value="{{ old('department', $remarks['department'] ?? '') }}">
+                <label for="start_time">Start Time</label>
+                <input type="time" id="start_time" name="start_time" value="{{ old('start_time') }}" required>
             </div>
         </div>
 
         <div class="form-row">
-            <div class="form-group">
-                <label for="start_time">Start Time</label>
-                <input type="time" id="start_time" name="start_time" value="{{ old('start_time', optional($reservation->start_time)->format('H:i')) }}" required>
-            </div>
             <div class="form-group">
                 <label for="end_time">End Time</label>
-                <input type="time" id="end_time" name="end_time" value="{{ old('end_time', optional($reservation->end_time)->format('H:i')) }}" required>
+                <input type="time" id="end_time" name="end_time" value="{{ old('end_time') }}" required>
             </div>
-        </div>
-
-        <div class="form-row">
             <div class="form-group" style="grid-column: 1 / -1;">
                 <label for="event_objectives">Event Objectives / Description</label>
-                <textarea id="event_objectives" name="event_objectives">{{ old('event_objectives', $reservation->description) }}</textarea>
+                <textarea id="event_objectives" name="event_objectives">{{ old('event_objectives') }}</textarea>
             </div>
         </div>
 
         <div class="form-row">
             <div class="form-group" style="grid-column: 1 / -1;">
                 <label for="equipment">Equipment Requested</label>
-                <input type="text" id="equipment" name="equipment" value="{{ old('equipment', $equipmentText) }}" placeholder="Separate items with commas">
+                <input type="text" id="equipment" name="equipment" value="{{ old('equipment') }}" placeholder="Separate items with commas">
                 <span class="form-note">Use commas to separate multiple equipment items.</span>
             </div>
         </div>
 
         <div class="button-group">
-            <a href="{{ route('admin.reservations.show', $reservation->id) }}" class="button-secondary">Cancel</a>
-            <button type="submit" class="button-primary">Save Changes</button>
+            <a href="{{ route('admin.reservations.index') }}" class="button-secondary">Cancel</a>
+            <button type="submit" class="button-primary">Create Reservation</button>
         </div>
     </form>
 </div>
