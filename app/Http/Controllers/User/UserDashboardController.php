@@ -51,10 +51,7 @@ class UserDashboardController extends Controller
             foreach ($reservations as $res) {
                 // Get multiple dates from remarks
                 $remarks = json_decode($res->remarks, true) ?: [];
-                $multipleDates = $remarks['multiple_dates'] ?? [];
-                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
-                    $multipleDates = [$res->event_date];
-                }
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
                 
                 // For EACH date in multipleDates, add the event to that date
@@ -140,10 +137,7 @@ class UserDashboardController extends Controller
             $events = [];
             foreach ($reservations as $res) {
                 $remarks = json_decode($res->remarks, true) ?: [];
-                $multipleDates = $remarks['multiple_dates'] ?? [];
-                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
-                    $multipleDates = [$res->event_date];
-                }
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
@@ -190,13 +184,10 @@ class UserDashboardController extends Controller
             $events = [];
             foreach ($reservations as $res) {
                 $remarks = json_decode($res->remarks, true) ?: [];
-                $multipleDates = $remarks['multiple_dates'] ?? [];
-                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
-                    $multipleDates = [$res->event_date];
-                }
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
                 
-                if (!in_array($date, $multipleDates)) {
+                if (!in_array($date, $multipleDates, true)) {
                     continue;
                 }
 
@@ -228,5 +219,32 @@ class UserDashboardController extends Controller
                 'events' => []
             ], 500);
         }
+    }
+
+    private function normalizeDates($dates, $defaultDate): array
+    {
+        $normalized = [];
+
+        if (!is_array($dates)) {
+            return [$defaultDate];
+        }
+
+        foreach ($dates as $date) {
+            try {
+                $parsed = Carbon::parse($date)->format('Y-m-d');
+                $normalized[] = $parsed;
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        if (empty($normalized) && $defaultDate) {
+            try {
+                $normalized[] = Carbon::parse($defaultDate)->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 }

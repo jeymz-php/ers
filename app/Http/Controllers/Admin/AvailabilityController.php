@@ -29,28 +29,13 @@ class AvailabilityController extends Controller
                 $query->where('campus_id', $request->campus_id);
             }
             
-            // Filter by month/year
-            if ($request->month && $request->year) {
-                $year = (int)$request->year;
-                $month = (int)$request->month;
-                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-                $query->whereBetween('event_date', [$startDate, $endDate]);
-            }
-            
             $reservations = $query->orderBy('event_date')->orderBy('start_time')->get();
             
             $events = [];
             foreach ($reservations as $res) {
                 // Get multiple dates from remarks
-                $remarks = json_decode($res->remarks, true);
-                if (!is_array($remarks)) {
-                    $remarks = [];
-                }
-                $multipleDates = $remarks['multiple_dates'];
-                if (!is_array($multipleDates) || empty($multipleDates)) {
-                    $multipleDates = [$res->event_date];
-                }
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
                 
                 // For EACH date in multipleDates, add the event to that date
@@ -119,8 +104,7 @@ class AvailabilityController extends Controller
             $date = $request->date;
             
             $query = Reservation::with(['establishment', 'campus', 'user'])
-                ->where('status', 'approved')
-                ->where('event_date', $date);
+                ->where('status', 'approved');
             
             if ($request->campus_id && $request->campus_id != 'all') {
                 $query->where('campus_id', $request->campus_id);
@@ -130,15 +114,13 @@ class AvailabilityController extends Controller
             
             $events = [];
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                if (!is_array($remarks)) {
-                    $remarks = [];
-                }
-                $multipleDates = $remarks['multiple_dates'];
-                if (!is_array($multipleDates) || empty($multipleDates)) {
-                    $multipleDates = [$res->event_date];
-                }
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
+
+                if (!in_array($date, $multipleDates, true)) {
+                    continue;
+                }
                 
                 $events[] = [
                     'id' => $res->id,
@@ -186,14 +168,8 @@ class AvailabilityController extends Controller
             
             $events = [];
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                if (!is_array($remarks)) {
-                    $remarks = [];
-                }
-                $multipleDates = $remarks['multiple_dates'];
-                if (!is_array($multipleDates) || empty($multipleDates)) {
-                    $multipleDates = [$res->event_date];
-                }
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $this->normalizeDates($remarks['multiple_dates'] ?? [], $res->event_date);
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
@@ -224,5 +200,35 @@ class AvailabilityController extends Controller
                 'events' => []
             ], 500);
         }
+    }
+
+    private function normalizeDates($dates, $defaultDate): array
+    {
+        $normalized = [];
+
+        if (!is_array($dates)) {
+            $dates = [];
+        }
+
+        foreach ($dates as $date) {
+            if (empty($date)) {
+                continue;
+            }
+
+            try {
+                $normalized[] = Carbon::parse($date)->format('Y-m-d');
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        if (empty($normalized) && $defaultDate) {
+            try {
+                $normalized[] = Carbon::parse($defaultDate)->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 }
