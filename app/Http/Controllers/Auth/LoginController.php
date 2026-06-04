@@ -16,6 +16,41 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
+    public function showAdminLoginForm()
+    {
+        return view('auth.login', ['adminMode' => true]);
+    }
+
+    public function adminLogin(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            $user = Auth::user();
+
+            if (!$user->isAdmin()) {
+                Auth::logout();
+                throw ValidationException::withMessages([
+                    'email' => __('The provided credentials do not match our admin records.'),
+                ]);
+            }
+
+            if ($user->is_password_generated) {
+                return redirect()->route('password.change');
+            }
+
+            return redirect()->route('admin.dashboard');
+        }
+
+        throw ValidationException::withMessages([
+            'email' => __('The provided credentials do not match our records.'),
+        ]);
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([

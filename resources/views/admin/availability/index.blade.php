@@ -583,6 +583,8 @@
         events.forEach(event => {
             const isMultiDate = event.is_multi_date;
             const multiDateBadge = isMultiDate ? '<span class="multi-date-indicator">Multiple Dates</span>' : '';
+            const eventDate = event.date || (event.event_date ? new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
+            const dateLine = eventDate ? `<div class="event-venue">📅 ${eventDate}</div>` : '';
             eventsHTML += `
                 <div class="event-item">
                     <div class="event-time">
@@ -590,6 +592,7 @@
                     </div>
                     <div class="event-details">
                         <div class="event-name">${event.title} ${multiDateBadge}</div>
+                        ${dateLine}
                         <div class="event-venue">📍 ${event.venue}</div>
                         <div class="event-campus">🏛️ ${event.campus} | 👤 ${event.requestor}</div>
                     </div>

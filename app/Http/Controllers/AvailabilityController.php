@@ -36,10 +36,11 @@ class AvailabilityController extends Controller
             $events = [];
 
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                $multipleDates = is_array($remarks['multiple_dates'] ?? null)
-                    ? $remarks['multiple_dates']
-                    : [$res->event_date];
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $remarks['multiple_dates'] ?? [];
+                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
+                    $multipleDates = [$res->event_date];
+                }
 
                 $isMultiDate = count($multipleDates) > 1;
 
@@ -112,10 +113,11 @@ class AvailabilityController extends Controller
             $events = [];
 
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                $multipleDates = is_array($remarks['multiple_dates'] ?? null)
-                    ? $remarks['multiple_dates']
-                    : [$res->event_date];
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $remarks['multiple_dates'] ?? [];
+                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
+                    $multipleDates = [$res->event_date];
+                }
 
                 if (!in_array($date, $multipleDates)) {
                     continue;

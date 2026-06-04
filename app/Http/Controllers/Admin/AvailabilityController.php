@@ -44,7 +44,13 @@ class AvailabilityController extends Controller
             foreach ($reservations as $res) {
                 // Get multiple dates from remarks
                 $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                if (!is_array($remarks)) {
+                    $remarks = [];
+                }
+                $multipleDates = $remarks['multiple_dates'];
+                if (!is_array($multipleDates) || empty($multipleDates)) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
                 // For EACH date in multipleDates, add the event to that date
@@ -77,10 +83,11 @@ class AvailabilityController extends Controller
                             'id' => $res->id,
                             'title' => $res->event_name,
                             'time' => Carbon::parse($res->start_time)->format('g:i A') . ' - ' . Carbon::parse($res->end_time)->format('g:i A'),
-                            'venue' => $res->establishment->name,
-                            'campus' => $res->campus->name,
+                            'venue' => $res->establishment?->name ?? 'Unknown Venue',
+                            'campus' => $res->campus?->name ?? 'Unknown Campus',
                             'campus_id' => $res->campus_id,
-                            'requestor' => $res->user->name,
+                            'requestor' => $res->user?->name ?? 'Unknown Requestor',
+                            'event_date' => Carbon::parse($singleDate)->format('Y-m-d'),
                             'start_time' => $res->start_time,
                             'end_time' => $res->end_time,
                             'is_multi_date' => $isMultiDate,
@@ -124,16 +131,23 @@ class AvailabilityController extends Controller
             $events = [];
             foreach ($reservations as $res) {
                 $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                if (!is_array($remarks)) {
+                    $remarks = [];
+                }
+                $multipleDates = $remarks['multiple_dates'];
+                if (!is_array($multipleDates) || empty($multipleDates)) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
                     'id' => $res->id,
                     'title' => $res->event_name,
                     'time' => Carbon::parse($res->start_time)->format('g:i A') . ' - ' . Carbon::parse($res->end_time)->format('g:i A'),
-                    'venue' => $res->establishment->name,
-                    'campus' => $res->campus->name,
-                    'requestor' => $res->user->name,
+                    'venue' => $res->establishment?->name ?? 'Unknown Venue',
+                    'campus' => $res->campus?->name ?? 'Unknown Campus',
+                    'requestor' => $res->user?->name ?? 'Unknown Requestor',
+                    'event_date' => Carbon::parse($res->event_date)->format('Y-m-d'),
                     'start_time' => $res->start_time,
                     'end_time' => $res->end_time,
                     'is_multi_date' => $isMultiDate,
@@ -173,7 +187,13 @@ class AvailabilityController extends Controller
             $events = [];
             foreach ($reservations as $res) {
                 $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                if (!is_array($remarks)) {
+                    $remarks = [];
+                }
+                $multipleDates = $remarks['multiple_dates'];
+                if (!is_array($multipleDates) || empty($multipleDates)) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
@@ -181,10 +201,11 @@ class AvailabilityController extends Controller
                     'title' => $res->event_name,
                     'date' => Carbon::parse($res->event_date)->format('M d, Y'),
                     'day' => Carbon::parse($res->event_date)->format('l'),
+                    'event_date' => Carbon::parse($res->event_date)->format('Y-m-d'),
                     'time' => Carbon::parse($res->start_time)->format('g:i A') . ' - ' . Carbon::parse($res->end_time)->format('g:i A'),
-                    'venue' => $res->establishment->name,
-                    'campus' => $res->campus->name,
-                    'requestor' => $res->user->name,
+                    'venue' => $res->establishment?->name ?? 'Unknown Venue',
+                    'campus' => $res->campus?->name ?? 'Unknown Campus',
+                    'requestor' => $res->user?->name ?? 'Unknown Requestor',
                     'is_multi_date' => $isMultiDate,
                     'multiple_dates' => $multipleDates
                 ];

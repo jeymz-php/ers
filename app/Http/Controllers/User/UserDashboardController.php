@@ -41,24 +41,20 @@ class UserDashboardController extends Controller
             
             $query = Reservation::with(['establishment', 'campus'])
                 ->where('status', 'approved')
-                ->where('campus_id', $user->campus_id);
-            
-            // Filter by month/year
-            if ($request->month && $request->year) {
-                $year = (int)$request->year;
-                $month = (int)$request->month;
-                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-                $query->whereBetween('event_date', [$startDate, $endDate]);
-            }
-            
-            $reservations = $query->orderBy('event_date')->orderBy('start_time')->get();
+                ->where('campus_id', $user->campus_id)
+                ->orderBy('event_date')
+                ->orderBy('start_time');
+
+            $reservations = $query->get();
             
             $events = [];
             foreach ($reservations as $res) {
                 // Get multiple dates from remarks
-                $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $remarks['multiple_dates'] ?? [];
+                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
                 // For EACH date in multipleDates, add the event to that date
@@ -143,8 +139,11 @@ class UserDashboardController extends Controller
             
             $events = [];
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $remarks['multiple_dates'] ?? [];
+                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
@@ -185,16 +184,22 @@ class UserDashboardController extends Controller
             $reservations = Reservation::with(['establishment', 'campus'])
                 ->where('status', 'approved')
                 ->where('campus_id', $user->campus_id)
-                ->where('event_date', $date)
                 ->orderBy('start_time')
                 ->get();
             
             $events = [];
             foreach ($reservations as $res) {
-                $remarks = json_decode($res->remarks, true);
-                $multipleDates = $remarks['multiple_dates'] ?? [$res->event_date];
+                $remarks = json_decode($res->remarks, true) ?: [];
+                $multipleDates = $remarks['multiple_dates'] ?? [];
+                if (!is_array($multipleDates) || count(array_filter($multipleDates)) === 0) {
+                    $multipleDates = [$res->event_date];
+                }
                 $isMultiDate = count($multipleDates) > 1;
                 
+                if (!in_array($date, $multipleDates)) {
+                    continue;
+                }
+
                 $events[] = [
                     'id' => $res->id,
                     'title' => $res->event_name,

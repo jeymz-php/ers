@@ -39,12 +39,14 @@
         font-size: 13px;
     }
     
-    .form-group input {
+    .form-group input,
+    .form-group textarea {
         width: 100%;
         padding: 10px;
         border: 1px solid #e8eee9;
         border-radius: 8px;
         font-size: 14px;
+        resize: vertical;
     }
     
     .btn-primary {
@@ -157,6 +159,34 @@
 
 <div class="settings-container">
     <!-- Change Password -->
+    <div class="settings-card">
+        <div class="card-title">🛠️ System Maintenance Mode</div>
+
+        @if(session('systemSuccess'))
+            <div class="alert alert-success">{{ session('systemSuccess') }}</div>
+        @endif
+
+        <div class="form-group">
+            <label>Current Status</label>
+            <input type="text" value="{{ strtoupper($systemStatus) }}" readonly>
+        </div>
+
+        <form method="POST" action="{{ route('admin.settings.system-status') }}">
+            @csrf
+            <div class="form-group">
+                <label>Maintenance Message</label>
+                <textarea name="maintenance_message" rows="4">{{ old('maintenance_message', $maintenanceMessage) }}</textarea>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                <button type="submit" name="system_status" value="up" class="btn-secondary">System Up</button>
+                <button type="submit" name="system_status" value="down" class="btn-secondary">System Down</button>
+            </div>
+        </form>
+
+        <small style="color: #6e7f72; display: block; margin-top: 15px;">Admins can still access the app using the hidden admin login via the UCC logo.</small>
+    </div>
+
     <div class="settings-card">
         <div class="card-title">🔐 Change Password</div>
         

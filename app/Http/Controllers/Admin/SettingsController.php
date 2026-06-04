@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\QueryException;
 
 class SettingsController extends Controller
 {
@@ -17,7 +20,45 @@ class SettingsController extends Controller
         if (!auth()->user()->isAdmin()) {
             return redirect()->route('dashboard');
         }
-        return view('admin.settings.index');
+
+        $systemStatus = 'up';
+        $maintenanceMessage = '';
+
+        try {
+            if (Schema::hasTable((new SystemSetting)->getTable())) {
+                $systemStatus = SystemSetting::getValue('system_status', 'up');
+                $maintenanceMessage = SystemSetting::getValue('maintenance_message', '');
+            }
+        } catch (QueryException $e) {
+            Log::warning('Settings index skipped SystemSetting lookup: ' . $e->getMessage());
+        }
+
+        return view('admin.settings.index', [
+            'systemStatus' => $systemStatus,
+            'maintenanceMessage' => $maintenanceMessage,
+        ]);
+    }
+
+    public function updateSystemStatus(Request $request)
+    {
+        $request->validate([
+            'system_status' => 'required|in:up,down',
+            'maintenance_message' => 'nullable|string',
+        ]);
+
+        try {
+            if (!Schema::hasTable((new SystemSetting)->getTable())) {
+                return back()->with('error', 'System settings storage is not available. Please run database migrations.');
+            }
+
+            SystemSetting::setValue('system_status', $request->system_status);
+            SystemSetting::setValue('maintenance_message', $request->maintenance_message ?? '');
+
+            return back()->with('systemSuccess', 'System status updated successfully.');
+        } catch (QueryException $e) {
+            Log::error('System status update failed: ' . $e->getMessage());
+            return back()->with('error', 'System status update failed. Please check database configuration.');
+        }
     }
     
     public function changePassword(Request $request)

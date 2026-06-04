@@ -1,0 +1,50 @@
+#16 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\ServiceProvider.php(119): Illuminate\\Container\\Container->call(Object(Closure))
+#17 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(957): Illuminate\\Support\\ServiceProvider->callBootedCallbacks()
+#18 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(935): Illuminate\\Foundation\\Application->bootProvider(Object(App\\Providers\\RouteServiceProvider))
+#19 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}(Object(App\\Providers\\RouteServiceProvider), 25)
+#20 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(934): array_walk(Array, Object(Closure))
+#21 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#22 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(265): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap(Object(Illuminate\\Foundation\\Application))
+#23 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(176): Illuminate\\Foundation\\Application->bootstrapWith(Array)
+#24 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(160): Illuminate\\Foundation\\Http\\Kernel->bootstrap()
+#25 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#26 C:\\Users\\James Ryan Gregorio\\ers\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#27 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('C:\\\\Users\\\\James ...')
+#28 {main}
+"} 
+[2026-06-04 22:23:26] local.ERROR: Unclosed '{' on line 33 {"exception":"[object] (ParseError(code: 0): Unclosed '{' on line 33 at C:\\Users\\James Ryan Gregorio\\ers\\routes\\web.php:221)
+[stacktrace]
+#0 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(503): Illuminate\\Routing\\RouteFileRegistrar->register('C:\\\\Users\\\\James ...')
+#1 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(457): Illuminate\\Routing\\Router->loadRoutes('C:\\\\Users\\\\James ...')
+#2 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\RouteRegistrar.php(192): Illuminate\\Routing\\Router->group(Array, 'C:\\\\Users\\\\James ...')
+#3 C:\\Users\\James Ryan Gregorio\\ers\\app\\Providers\\RouteServiceProvider.php(48): Illuminate\\Routing\\RouteRegistrar->group('C:\\\\Users\\\\James ...')
+#4 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): App\\Providers\\RouteServiceProvider->App\\Providers\\{closure}()
+#5 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(41): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#6 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(81): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#7 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Object(Closure), Object(Closure))
+#8 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(661): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Object(Closure), Array, NULL)
+#9 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Support\\Providers\\RouteServiceProvider.php(120): Illuminate\\Container\\Container->call(Object(Closure))
+#10 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Support\\Providers\\RouteServiceProvider.php(45): Illuminate\\Foundation\\Support\\Providers\\RouteServiceProvider->loadRoutes()
+#11 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(36): Illuminate\\Foundation\\Support\\Providers\\RouteServiceProvider->Illuminate\\Foundation\\Support\\Providers\\{closure}()
+#12 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Util.php(41): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#13 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(81): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#14 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Object(Closure), Object(Closure))
+#15 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(661): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Object(Closure), Array, NULL)
+#16 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\ServiceProvider.php(119): Illuminate\\Container\\Container->call(Object(Closure))
+#17 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(957): Illuminate\\Support\\ServiceProvider->callBootedCallbacks()
+#18 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(935): Illuminate\\Foundation\\Application->bootProvider(Object(App\\Providers\\RouteServiceProvider))
+#19 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}(Object(App\\Providers\\RouteServiceProvider), 25)
+#20 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(934): array_walk(Array, Object(Closure))
+#21 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#22 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(265): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap(Object(Illuminate\\Foundation\\Application))
+#23 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(176): Illuminate\\Foundation\\Application->bootstrapWith(Array)
+#24 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(160): Illuminate\\Foundation\\Http\\Kernel->bootstrap()
+#25 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#26 C:\\Users\\James Ryan Gregorio\\ers\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#27 C:\\Users\\James Ryan Gregorio\\ers\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('C:\\\\Users\\\\James ...')
+#28 {main}
+"} 
+[2026-06-04 22:24:19] local.ERROR: Admin Upcoming Events Error: Attempt to read property "name" on null  
+[2026-06-04 22:24:25] local.ERROR: Admin Upcoming Events Error: Attempt to read property "name" on null  
+[2026-06-04 22:25:24] local.ERROR: Admin Upcoming Events Error: Attempt to read property "name" on null  
+[2026-06-04 22:25:32] local.ERROR: Admin Upcoming Events Error: Attempt to read property "name" on null  

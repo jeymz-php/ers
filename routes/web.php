@@ -23,36 +23,40 @@ use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\AdminChatController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SystemController;
 
 /*
 |--------------------------------------------------------------------------
 | GUEST ROUTES (Not logged in)
 |--------------------------------------------------------------------------
 */
-Route::middleware('guest')->group(function () {
-    // Authentication
-    Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
-    Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('register', [RegisterController::class, 'register']);
-    
-    // Password Reset
-    Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-    Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-    Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-    Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
-});
+Route::middleware(['checkSystemStatus'])->group(function () {
+    Route::middleware('guest')->group(function () {
+        // Authentication
+        Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+        Route::post('login', [LoginController::class, 'login']);
+        Route::get('admin/login', [LoginController::class, 'showAdminLoginForm'])->name('admin.login');
+        Route::post('admin/login', [LoginController::class, 'adminLogin'])->name('admin.login.submit');
+        Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+        Route::post('register', [RegisterController::class, 'register']);
+        
+        // Password Reset
+        Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+        Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+        Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+        Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+    });
 
-Route::get('/availability', [AvailabilityController::class, 'index'])->name('public.availability.index');
-Route::get('/availability/events', [AvailabilityController::class, 'getEvents'])->name('public.availability.events');
-Route::get('/availability/day', [AvailabilityController::class, 'getDayEvents'])->name('public.availability.day');
+    Route::get('/availability', [AvailabilityController::class, 'index'])->name('public.availability.index');
+    Route::get('/availability/events', [AvailabilityController::class, 'getEvents'])->name('public.availability.events');
+    Route::get('/availability/day', [AvailabilityController::class, 'getDayEvents'])->name('public.availability.day');
 
-/*
-|--------------------------------------------------------------------------
-| AUTHENTICATED ROUTES (Logged in)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth')->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHENTICATED ROUTES (Logged in)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
     
     // ========== USER ROUTES ==========
@@ -167,6 +171,7 @@ Route::middleware('auth')->group(function () {
         
         // Settings
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/system-status', [AdminSettingsController::class, 'updateSystemStatus'])->name('settings.system-status');
         Route::post('/settings/password', [AdminSettingsController::class, 'changePassword'])->name('settings.password');
         Route::get('/settings/backup', [AdminSettingsController::class, 'backup'])->name('settings.backup');
         Route::post('/settings/restore', [AdminSettingsController::class, 'restore'])->name('settings.restore');
@@ -206,11 +211,7 @@ Route::middleware('auth')->group(function () {
 | HOME ROUTE
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    if (auth()->check()) {
-        return auth()->user()->isAdmin() 
-            ? redirect()->route('admin.dashboard') 
-            : redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
+Route::get('/maintenance', [SystemController::class, 'maintenance'])->name('maintenance');
 });
+
+Route::get('/', [SystemController::class, 'landing'])->name('home');

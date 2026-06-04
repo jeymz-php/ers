@@ -210,10 +210,14 @@
                 </div>
             </div>
 
+            @php
+                $adminMode = $adminMode ?? false;
+            @endphp
+
             {{-- Heading --}}
-            <h2 class="auth-heading">Welcome Back</h2>
+            <h2 class="auth-heading">{{ $adminMode ? 'Admin Login' : 'Welcome Back' }}</h2>
             <p class="auth-subheading">
-                Sign in to access your dashboard and manage event reservations.
+                {{ $adminMode ? 'Admin access is available through the hidden login entry.' : 'Sign in to access your dashboard and manage event reservations.' }}
             </p>
 
             {{-- Alerts --}}
@@ -240,8 +244,12 @@
             @endif
 
             {{-- Login Form --}}
-            <form method="POST" action="{{ route('login') }}" id="loginForm">
+            @php $loginAction = $adminMode ? route('admin.login.submit') : route('login'); @endphp
+            <form method="POST" action="{{ $loginAction }}" id="loginForm">
                 @csrf
+                @if($adminMode)
+                    <input type="hidden" name="admin_mode" value="1">
+                @endif
 
                 {{-- Email --}}
                 <div class="field-group">
@@ -302,11 +310,13 @@
 
                 {{-- Links --}}
                 <div class="links-row">
-                    <span class="link-text">
-                        Don't have an account?&nbsp;
-                        <a href="{{ route('register') }}">Register here</a>
-                    </span>
-                    <a href="{{ route('password.request') }}">Forgot password?</a>
+                    @unless($adminMode)
+                        <span class="link-text">
+                            Don't have an account?&nbsp;
+                            <a href="{{ route('register') }}">Register here</a>
+                        </span>
+                        <a href="{{ route('password.request') }}">Forgot password?</a>
+                    @endunless
                 </div>
             </form>
 
