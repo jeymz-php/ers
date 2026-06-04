@@ -107,6 +107,15 @@ class ChatController extends Controller
             ], 500);
         }
     }
+
+    public function newSession(Request $request)
+    {
+        $user = Auth::user();
+
+        ChatSession::createNewSession($user->id);
+
+        return response()->json(['success' => true]);
+    }
     
     public function getMessages(Request $request)
     {

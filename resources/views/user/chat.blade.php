@@ -228,6 +228,24 @@
     .chat-send:hover {
         transform: scale(1.05);
     }
+
+    .new-session-btn {
+        margin-top: 12px;
+        background: rgba(255,255,255,0.18);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.28);
+        padding: 9px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .new-session-btn:hover {
+        background: rgba(255,255,255,0.28);
+        transform: translateY(-1px);
+    }
     
     .no-messages {
         text-align: center;
@@ -354,6 +372,7 @@
                 <div class="chat-header">
                     <h3>💬 Customer Support</h3>
                     <p>Our team will respond to your message shortly</p>
+                    <button class="new-session-btn" onclick="createNewSession()">+ New Session</button>
                 </div>
                 
                 <div class="chat-messages" id="chatMessages">
@@ -369,7 +388,7 @@
                 </div>
                 @endif
                 
-                <div class="chat-input-area">
+                <div class="chat-input-area" id="chatInputArea">
                     <button class="file-attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
                     <input type="file" id="fileInput" style="display: none;" accept="image/*,.pdf" onchange="uploadFile(this)">
                     <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)" {{ (!$activeSession || !$activeSession->is_active) ? 'disabled' : '' }}>
@@ -430,7 +449,55 @@
             }
         }
     }
-    
+
+    function createNewSession() {
+        fetch('/user/chat/new-session', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                lastMessageId = 0;
+                sessionActive = true;
+                sessionEndedBannerShown = false;
+                messageIds.clear();
+
+                const container = document.getElementById('chatMessages');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="no-messages">
+                            💬 No messages yet.<br>
+                            Type your message below to start a conversation.
+                        </div>
+                    `;
+                }
+
+                const sessionStatus = document.querySelector('.session-status');
+                if (sessionStatus) {
+                    sessionStatus.remove();
+                }
+
+                const chatInput = document.getElementById('chatInput');
+                const sendBtn   = document.querySelector('.chat-send');
+                const fileBtn   = document.querySelector('.file-attach-btn');
+
+                if (chatInput) chatInput.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                if (fileBtn) fileBtn.disabled = false;
+            } else {
+                alert('Unable to start a new session. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Unable to start a new session. Please try again.');
+        });
+    }
+
     function appendNewMessages(messages) {
         const container = document.getElementById('chatMessages');
         if (!container) return;
