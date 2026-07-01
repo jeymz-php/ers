@@ -138,6 +138,20 @@
         font-size: 11px;
     }
     
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: none;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    
+    .btn-delete:hover {
+        background: #b02a37;
+    }
+    
     .checkbox-col {
         width: 30px;
     }
@@ -223,6 +237,17 @@
 </style>
 
 <div class="users-container">
+    @if(session('success'))
+        <div style="background: #d4f5df; color: #1a7a3e; padding: 15px 20px; border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+            ✅ {{ session('success') }}
+        </div>
+    @endif
+    
+    @if(session('error'))
+        <div style="background: #fee2e2; color: #dc2626; padding: 15px 20px; border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+            ⚠️ {{ session('error') }}
+        </div>
+    @endif
     <!-- Filters -->
     <div class="filters-bar">
         <form method="GET" action="{{ route('admin.users.index') }}" id="filterForm">
@@ -340,7 +365,14 @@
                     <td>{{ $user->campus->name ?? 'N/A' }}</td>
                     <td>{{ $user->created_at->format('M d, Y') }}</td>
                     <td><span class="status-badge status-approved">Approved</span></td>
-                    <td><a href="{{ route('admin.users.show', $user->id) }}" class="btn-view">View</a></td>
+                    <td style="display: flex; gap: 5px; align-items: center;">
+                        <a href="{{ route('admin.users.show', $user->id) }}" class="btn-view">View</a>
+                        <form method="POST" action="{{ route('admin.users.destroy', $user->id) }}" onsubmit="return confirm('Are you sure you want to delete {{ addslashes($user->name) }}? This action cannot be undone.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 @empty
                 <tr>

@@ -23,10 +23,19 @@
         text-align: center;
     }
 
-    .landing-card img {
-        width: 120px;
+    /* Logo Container - Perfect Centering */
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
         margin-bottom: 24px;
-        cursor: pointer;
+    }
+
+    .landing-card img {
+        height: 180px;
+        background: white;
+        padding: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .landing-card h1 {
@@ -61,6 +70,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.3s ease;
     }
 
     .btn-primary {
@@ -68,48 +78,78 @@
         color: #fff;
     }
 
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(34, 145, 63, 0.3);
+    }
+
     .btn-secondary {
         background: #f3f7f2;
         color: #1a7a3e;
     }
 
-    .secret-hint,
-    .click-count {
-        font-size: 0.9rem;
-        color: #6e7f72;
-        margin-top: 4px;
+    .btn-secondary:hover {
+        background: #e8f0e6;
+        transform: translateY(-2px);
+    }
+
+    .secret-hint {
+        font-size: 0.85rem;
+        color: #b0bdb3;
+        margin-top: 12px;
+        cursor: default;
+    }
+
+    .secret-hint span {
+        color: #2db84f;
+        font-weight: 600;
     }
 </style>
 
 <div class="system-landing">
     <div class="landing-card">
-        <img id="secretLogo" src="{{ asset('images/UCC_Logo.png') }}" alt="University of Caloocan City Logo" />
-        <h1>University of Caloocan City Event Reservation</h1>
+        <div class="logo-container">
+            <img id="secretLogo" src="{{ asset('images/UCC_Logo.png') }}" alt="University of Caloocan City Logo" />
+        </div>
+        <h1>University of Caloocan City</h1>
+        <h1 style="font-size: 1.5rem; margin-top: -10px; margin-bottom: 20px; color: #2db84f;">Event Reservation System</h1>
         <p>Reserve venues, check availability, and manage campus events in one secure system.</p>
 
         <div class="action-buttons">
             <a href="{{ route('login') }}" class="btn-primary">User Login</a>
             <a href="{{ route('public.availability.index') }}" class="btn-secondary">View Availability</a>
         </div>
-
-        <p class="secret-hint">Authorized admins can access the hidden login by clicking the logo 5 times.</p>
-        <p class="click-count" id="clickCountText"></p>
     </div>
 </div>
 
 @push('scripts')
 <script>
     let secretClickCount = 0;
-    const clickText = document.getElementById('clickCountText');
     const secretLogo = document.getElementById('secretLogo');
+    const clickText = document.getElementById('clickCountText');
 
-    secretLogo.addEventListener('click', function () {
+    secretLogo.addEventListener('click', function (e) {
+        e.stopPropagation();
         secretClickCount += 1;
+        
         if (secretClickCount >= 5) {
             window.location.href = '{{ route('admin.login') }}';
             return;
         }
-        clickText.textContent = `Clicked ${secretClickCount} / 5 times. Keep clicking to open admin access.`;
+        
+        // Visual feedback on click
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            secretLogo.style.transform = 'scale(1)';
+        }, 150);
+        
+        clickText.innerHTML = `🔒 Clicked ${secretClickCount}/5 times. <span>Keep clicking to access admin portal.</span>`;
+        
+        // Add progress bar effect
+        const progressWidth = (secretClickCount / 5) * 100;
+        clickText.style.background = `linear-gradient(90deg, #d4f5df ${progressWidth}%, transparent ${progressWidth}%)`;
+        clickText.style.padding = '6px 12px';
+        clickText.style.borderRadius = '50px';
     });
 </script>
 @endpush

@@ -930,11 +930,6 @@
                         <div id="equipmentList"></div>
                     </div>
                     
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="is_approved" name="is_approved">
-                        <label for="is_approved">Reservation Is Approved (Admin only)</label>
-                    </div>
-                    
                     <!-- File Upload Section with Add Another File Button -->
                     <div class="form-group">
                         <label>Attachments</label>
@@ -1437,7 +1432,6 @@
         formData.append('end_time', endTime);
         formData.append('event_dates', JSON.stringify(selectedDates));
         formData.append('equipment', JSON.stringify(equipmentList));
-        formData.append('is_approved', document.getElementById('is_approved').checked ? '1' : '0');
         
         // Append all files
         for (let i = 0; i < attachedFiles.length; i++) {

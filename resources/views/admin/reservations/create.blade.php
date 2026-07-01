@@ -437,7 +437,10 @@
             display.textContent = 'No dates selected. Click on dates in the calendar.';
             hiddenInput.value = '';
         } else {
-            display.innerHTML = selectedDates.map(date => `<div>${formatDisplayDate(new Date(date))}</div>`).join('');
+            display.innerHTML = selectedDates.map(dateStr => {
+                const [y, m, d] = dateStr.split('-').map(Number);
+                return `<div>${formatDisplayDate(new Date(y, m - 1, d))}</div>`;
+            }).join('');
             hiddenInput.value = selectedDates.join(',');
         }
     }
@@ -475,10 +478,12 @@
 
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(currentYear, currentMonth, day);
-            date.setHours(0, 0, 0, 0);
             const item = document.createElement('div');
             item.className = 'calendar-day';
-            const dateString = date.toISOString().split('T')[0];
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const dateString = `${yyyy}-${mm}-${dd}`;
 
             item.innerHTML = `<div class="day-number">${day}</div><div class="day-note"></div>`;
 

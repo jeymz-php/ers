@@ -235,6 +235,14 @@
                 </button>
             </form>
         </div>
+        
+        <div class="nav-divider"></div>
+        
+        <div class="nav-item">
+            <a href="{{ route('user.guide') }}" class="{{ request()->routeIs('user.guide') ? 'active' : '' }}">
+                <i class="..."></i> 📙 User Guide
+            </a>
+        </div>
     </nav>
 
     <div class="sidebar-footer">

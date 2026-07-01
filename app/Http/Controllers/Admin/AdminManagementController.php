@@ -116,4 +116,49 @@ class AdminManagementController extends Controller
         return redirect()->route('admin.admins.index')
             ->with('success', 'Admin account deleted successfully');
     }
+    
+    public function edit($id)
+    {
+        $admin = User::whereIn('role', ['admin', 'super_admin'])->findOrFail($id);
+        $campuses = Campus::all();
+        return view('admin.admins.edit', compact('admin', 'campuses'));
+    }
+    
+    public function update(Request $request, $id)
+    {
+        $admin = User::whereIn('role', ['admin', 'super_admin'])->findOrFail($id);
+    
+        $request->validate([
+            'name'         => 'required|string|max:255',
+            'email'        => ['required', 'email', Rule::unique('users', 'email')->ignore($admin->id)],
+            'phone_number' => 'required|string|max:20',
+            'campus_id'    => 'required|exists:campuses,id',
+            'role'         => 'required|in:admin,super_admin',
+        ]);
+    
+        // Prevent demoting the last super admin
+        if ($admin->role === 'super_admin' && $request->role !== 'super_admin') {
+            if (User::where('role', 'super_admin')->count() <= 1) {
+                return back()->withErrors(['role' => 'Cannot change role: this is the only Super Admin account.'])->withInput();
+            }
+        }
+    
+        $admin->update([
+            'name'         => $request->name,
+            'email'        => $request->email,
+            'phone_number' => $request->phone_number,
+            'campus_id'    => $request->campus_id,
+            'role'         => $request->role,
+        ]);
+    
+        \App\Models\AdminActionLog::create([
+            'admin_id'       => auth()->id(),
+            'target_user_id' => $admin->id,
+            'action'         => 'edit_admin',
+            'details'        => "Updated {$admin->role} account details.",
+        ]);
+    
+        return redirect()->route('admin.admins.index')
+            ->with('success', "Admin account for {$admin->name} has been updated successfully.");
+    }
 }

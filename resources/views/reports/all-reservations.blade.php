@@ -17,28 +17,41 @@
         }
         
         .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #1a7a3e;
+            display: table;
+            width: 100%;
+            padding-bottom: 10px;
+            border-bottom: 2.5px solid #1a7a3e;
+            margin-bottom: 20px;
         }
-        
-        .logo {
-            width: 70px;
-            height: 70px;
-            margin-bottom: 10px;
+
+        .header-logo {
+            display: table-cell;
+            width: 64px;
+            vertical-align: middle;
         }
-        
+
+        .header-logo img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .header-text {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 10px;
+        }
+
         .university {
-            font-size: 22px;
+            font-size: 17px;
             font-weight: bold;
             color: #1a7a3e;
+            line-height: 1.2;
         }
-        
+
         .subtitle {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 11px;
+            color: #555;
+            margin-top: 2px;
         }
         
         .report-title {
@@ -116,11 +129,30 @@
         
         .footer {
             margin-top: 30px;
-            padding-top: 20px;
+            padding-top: 15px;
             border-top: 1px solid #ddd;
-            text-align: center;
-            font-size: 10px;
+            display: table;
+            width: 100%;
+        }
+
+        .footer-left {
+            display: table-cell;
+            vertical-align: middle;
+            font-size: 9px;
             color: #999;
+            width: 70%;
+        }
+
+        .footer-right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+            width: 30%;
+        }
+
+        .footer-right img {
+            width: 130px;
+            opacity: 0.75;
         }
         
         .summary {
@@ -133,10 +165,15 @@
     </style>
 </head>
 <body>
+    <!-- HEADER -->
     <div class="header">
-        <img src="{{ public_path('images/UCC_Logo.png') }}" class="logo" alt="UCC Logo">
-        <div class="university">University of Caloocan City</div>
-        <div class="subtitle">Event Reservation System - All Reservations Report</div>
+        <div class="header-logo">
+            <img src="{{ public_path('images/UCC_Logo.png') }}" alt="UCC Logo">
+        </div>
+        <div class="header-text">
+            <div class="university">University of Caloocan City</div>
+            <div class="subtitle">Event Reservation System &nbsp;|&nbsp; Biglang Awa Street, Cor 11th Ave Catleya, Caloocan City</div>
+        </div>
     </div>
     
     <div class="report-title">COMPLETE RESERVATIONS LIST</div>
@@ -169,7 +206,6 @@
         <tbody>
             @forelse($reservations as $res)
             @php
-                // Fix: Add null checks for relationships
                 $requestorName = $res->user ? $res->user->name : 'Unknown User';
                 $venueName = $res->establishment ? $res->establishment->name : 'N/A';
                 $campusName = $res->campus ? $res->campus->name : 'N/A';
@@ -191,7 +227,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="9" style="text-align: center;">No reservations found</td>
+                <td colspan="9" style="text-align: center; padding: 40px;">No reservations found</td>
             </tr>
             @endforelse
         </tbody>
@@ -205,9 +241,15 @@
         Rejected: {{ $reservations->where('status', 'rejected')->count() }}
     </div>
     
+    <!-- FOOTER with Caloocan logo on right -->
     <div class="footer">
-        This is a system-generated report. For any concerns, please contact the UCC-ERS administrator.<br>
-        &copy; {{ date('Y') }} University of Caloocan City. All rights reserved.
+        <div class="footer-left">
+            This is a system-generated report. For any concerns, please contact the UCC-ERS Administrator.<br>
+            &copy; {{ date('Y') }} University of Caloocan City. All rights reserved.
+        </div>
+        <div class="footer-right">
+            <img src="{{ public_path('images/CALOOCAN_Logo.png') }}" alt="Caloocan City Logo">
+        </div>
     </div>
 </body>
 </html>

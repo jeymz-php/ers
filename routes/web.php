@@ -93,6 +93,11 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::post('/user/chat/new-session', [App\Http\Controllers\User\ChatController::class, 'newSession'])->name('user.chat.new-session');
         Route::get('/user/chat/messages', [App\Http\Controllers\User\ChatController::class, 'getMessages'])->name('user.chat.messages');
         Route::get('/user/chat/unread-count', [App\Http\Controllers\User\ChatController::class, 'getUnreadCount'])->name('user.chat.unread');
+        
+        // User Guide
+        Route::get('/guide', function () {
+            return view('user.guide');
+        })->name('user.guide');
     });
     
     // Temporary Password Change (Forced)
@@ -201,6 +206,8 @@ Route::middleware(['checkSystemStatus'])->group(function () {
             Route::get('/admins', [AdminManagementController::class, 'index'])->name('admins.index');
             Route::get('/admins/create', [AdminManagementController::class, 'create'])->name('admins.create');
             Route::post('/admins', [AdminManagementController::class, 'store'])->name('admins.store');
+            Route::get('/admins/{id}/edit', [AdminManagementController::class, 'edit'])->name('admins.edit');
+            Route::put('/admins/{id}', [AdminManagementController::class, 'update'])->name('admins.update');
             Route::delete('/admins/{id}', [AdminManagementController::class, 'destroy'])->name('admins.destroy');
         });
     });

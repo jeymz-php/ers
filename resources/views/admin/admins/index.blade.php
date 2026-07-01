@@ -19,6 +19,19 @@
         text-decoration: none;
         display: inline-block;
     }
+    .btn-edit {
+        background: #1a7a3e;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 12px;
+        display: inline-block;
+    }
+    .btn-edit:hover {
+        background: #155e30;
+        color: white;
+    }
     .admins-table {
         background: white;
         border-radius: 16px;
@@ -116,8 +129,9 @@
                     </span>
                 </td>
                 <td>{{ $admin->created_at->format('M d, Y') }}</td>
-                <td>
+                <td style="display: flex; gap: 5px; align-items: center;">
                     @if($admin->id !== auth()->id())
+                        <a href="{{ route('admin.admins.edit', $admin->id) }}" class="btn-edit">Edit</a>
                         <form method="POST" action="{{ route('admin.admins.destroy', $admin->id) }}" style="display: inline;" onsubmit="return confirm('Delete this admin account?')">
                             @csrf
                             @method('DELETE')

@@ -11,7 +11,6 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class ReservationController extends Controller
 {
@@ -151,7 +150,7 @@ class ReservationController extends Controller
                 'event_date' => $eventDates[0], // Store first date as primary
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'status' => $request->is_approved ? 'approved' : 'pending',
+                'status' => 'pending',
                 'remarks' => json_encode([
                     'user_type' => $request->user_type,
                     'department' => $request->department,
@@ -161,13 +160,6 @@ class ReservationController extends Controller
                     'is_multi_date' => count($eventDates) > 1
                 ])
             ]);
-            
-            if ($request->is_approved) {
-                $reservation->update([
-                    'approved_at' => now(),
-                    'approved_by' => Auth::id()
-                ]);
-            }
             
             // Create SINGLE notification for admins
             $this->createNotification($reservation);
