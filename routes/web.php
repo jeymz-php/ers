@@ -24,6 +24,8 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\AdminChatController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SystemController;
+use App\Http\Controllers\User\VehicleReservationController;
+use App\Http\Controllers\Admin\VehicleReservationManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +74,10 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::post('/reservations', [ReservationController::class, 'store'])->name('user.reservations.store');
         Route::get('/reservations/availability/{id}', [ReservationController::class, 'showAvailability'])->name('user.reservations.availability');
         Route::get('/api/campuses/{campusId}/establishments', [ReservationController::class, 'getEstablishmentsByCampus']);
+
+        // Pickup Vehicle Reservations
+        Route::get('/vehicle-reservations', [VehicleReservationController::class, 'index'])->name('user.vehicle-reservations');
+        Route::post('/vehicle-reservations', [VehicleReservationController::class, 'store'])->name('user.vehicle-reservations.store');
         
         // Summary
         Route::get('/summary', [SummaryController::class, 'index'])->name('user.summary');
@@ -113,6 +119,7 @@ Route::middleware(['checkSystemStatus'])->group(function () {
     // Reports
     Route::get('/report/single/{id}', [ReportController::class, 'generateSingleReport'])->name('report.single');
     Route::get('/report/all', [ReportController::class, 'generateAllReport'])->name('report.all');
+    Route::get('/report/vehicle/{id}', [ReportController::class, 'generateSingleVehicleReport'])->name('report.vehicle.single');
     
     // User Status Pages
     Route::get('/user/pending', function () {
@@ -158,6 +165,15 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::post('/reservations/{id}/approve', [ReservationManagementController::class, 'approve'])->name('reservations.approve');
         Route::post('/reservations/{id}/reject', [ReservationManagementController::class, 'reject'])->name('reservations.reject');
         Route::delete('/reservations/{id}', [ReservationManagementController::class, 'destroy'])->name('reservations.destroy');
+
+        // Pickup Vehicle Reservations
+        Route::get('/vehicle-reservations', [VehicleReservationManagementController::class, 'index'])->name('vehicle-reservations.index');
+        Route::get('/vehicle-reservations/create', [VehicleReservationManagementController::class, 'create'])->name('vehicle-reservations.create');
+        Route::post('/vehicle-reservations', [VehicleReservationManagementController::class, 'store'])->name('vehicle-reservations.store');
+        Route::get('/vehicle-reservations/{id}', [VehicleReservationManagementController::class, 'show'])->name('vehicle-reservations.show');
+        Route::post('/vehicle-reservations/{id}/approve', [VehicleReservationManagementController::class, 'approve'])->name('vehicle-reservations.approve');
+        Route::post('/vehicle-reservations/{id}/reject', [VehicleReservationManagementController::class, 'reject'])->name('vehicle-reservations.reject');
+        Route::delete('/vehicle-reservations/{id}', [VehicleReservationManagementController::class, 'destroy'])->name('vehicle-reservations.destroy');
         
         // Campus Management
         Route::get('/campuses', [CampusManagementController::class, 'index'])->name('campuses.index');
@@ -183,6 +199,11 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::get('/settings/backups/list', [AdminSettingsController::class, 'getBackupList'])->name('settings.backups.list');
         Route::get('/settings/backup/download/{filename}', [AdminSettingsController::class, 'downloadBackup'])->name('settings.backup.download');
         Route::delete('/settings/backup/delete/{filename}', [AdminSettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
+
+        // System Updates
+        Route::post('/settings/system-updates', [AdminSettingsController::class, 'publishSystemUpdate'])->name('settings.system-updates.publish');
+        Route::post('/settings/system-updates/toggle', [AdminSettingsController::class, 'toggleSystemUpdatesModal'])->name('settings.system-updates.toggle');
+        Route::delete('/settings/system-updates/{id}', [AdminSettingsController::class, 'deleteSystemUpdate'])->name('settings.system-updates.destroy');
         
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');

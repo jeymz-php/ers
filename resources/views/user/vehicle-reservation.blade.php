@@ -1,0 +1,502 @@
+@extends('layouts.app')
+
+@section('title', 'Pickup Vehicle')
+
+@section('content')
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #f0faf3;
+        font-family: 'Arial', sans-serif;
+    }
+
+    .user-container {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .user-main {
+        flex: 1;
+        margin-left: 280px;
+        background: #f0faf3;
+        min-height: 100vh;
+        transition: margin-left 0.3s ease;
+    }
+
+    .content-area {
+        padding: 25px 30px;
+    }
+
+    .welcome-banner {
+        background: white;
+        border-radius: 16px;
+        padding: 18px 25px;
+        margin-bottom: 25px;
+        border-left: 4px solid #2db84f;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .welcome-text {
+        color: #3c4a3f;
+        font-size: 15px;
+    }
+
+    .vehicle-layout {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 25px;
+        align-items: start;
+    }
+
+    .panel-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .panel-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #1a7a3e;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e8eee9;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1a7a3e;
+        font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e8eee9;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #fbfefc;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+    }
+
+    .form-hint {
+        font-size: 11px;
+        color: #6e7f72;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .radio-option {
+        flex: 1;
+        min-width: 140px;
+        border: 1px solid #e8eee9;
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #3c4a3f;
+        transition: all 0.2s;
+    }
+
+    .radio-option:hover {
+        border-color: #2db84f;
+    }
+
+    .radio-option input {
+        width: auto;
+        accent-color: #1a7a3e;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #1a7a3e, #2db84f);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.92;
+    }
+
+    .alert {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+
+    .alert-success {
+        background: #d4f5df;
+        color: #1a7a3e;
+    }
+
+    .alert-error {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .alert ul {
+        margin: 5px 0 0 18px;
+    }
+
+    /* My Requests list */
+    .request-card {
+        background: #f7faf8;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .request-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .request-code {
+        font-weight: 700;
+        color: #1a7a3e;
+        font-size: 13px;
+    }
+
+    .request-purpose {
+        font-size: 12px;
+        color: #6e7f72;
+        margin-top: 2px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .status-approved {
+        background: #d4f5df;
+        color: #1a7a3e;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-rejected {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .status-cancelled {
+        background: #e8eee9;
+        color: #6e7f72;
+    }
+
+    .request-detail-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #3c4a3f;
+        padding: 4px 0;
+    }
+
+    .request-detail-row span:first-child {
+        color: #6e7f72;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 15px;
+        color: #b0bdb3;
+        font-size: 13px;
+    }
+
+    .pagination-wrap {
+        margin-top: 15px;
+    }
+
+    @media (max-width: 992px) {
+        .vehicle-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .user-main {
+            margin-left: 0;
+        }
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="user-container">
+    @include('partials.user-sidebar')
+
+    <main class="user-main">
+        @include('partials.user-topbar')
+
+        <div class="content-area">
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    🚐 Reserve a <strong>UCC Pickup Vehicle</strong> for transporting or item delivery needs.
+                </div>
+            </div>
+
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-error">{{ session('error') }}</div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-error">
+                    Please fix the following:
+                    <ul>
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div class="vehicle-layout">
+                <!-- Reservation Form -->
+                <div class="panel-card">
+                    <div class="panel-title">🚐 Reserve a Pickup Vehicle</div>
+
+                    <form method="POST" action="{{ route('user.vehicle-reservations.store') }}" enctype="multipart/form-data">
+                        @csrf
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>I am a</label>
+                                <select name="requester_type" required>
+                                    <option value="">Select...</option>
+                                    <option value="student" {{ old('requester_type') == 'student' ? 'selected' : '' }}>Student</option>
+                                    <option value="professor" {{ old('requester_type') == 'professor' ? 'selected' : '' }}>Professor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>From Campus (Origin)</label>
+                                <select name="origin_campus_id" required>
+                                    <option value="">Select campus...</option>
+                                    @foreach($campuses as $campus)
+                                        <option value="{{ $campus->id }}" {{ old('origin_campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Purpose of Reservation</label>
+                            <select name="purpose" id="purposeSelect" required>
+                                <option value="">Select purpose...</option>
+                                <option value="transporting" {{ old('purpose') == 'transporting' ? 'selected' : '' }}>Transporting</option>
+                                <option value="delivery" {{ old('purpose') == 'delivery' ? 'selected' : '' }}>Items Delivery</option>
+                                <option value="other" {{ old('purpose') == 'other' ? 'selected' : '' }}>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="otherPurposeGroup" style="display: none;">
+                            <label>Please specify purpose</label>
+                            <input type="text" name="other_purpose" value="{{ old('other_purpose') }}" maxlength="255" placeholder="Specify your purpose">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Destination</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="destination_type" value="campus" id="destTypeCampus" {{ old('destination_type', 'campus') == 'campus' ? 'checked' : '' }}>
+                                    Within UCC Campus
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="destination_type" value="outside" id="destTypeOutside" {{ old('destination_type') == 'outside' ? 'checked' : '' }}>
+                                    Outside Campus
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="destinationCampusGroup">
+                            <label>Destination Campus</label>
+                            <select name="destination_campus_id">
+                                <option value="">Select campus...</option>
+                                @foreach($campuses as $campus)
+                                    <option value="{{ $campus->id }}" {{ old('destination_campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="destinationLocationGroup" style="display: none;">
+                            <label>Destination Location</label>
+                            <input type="text" name="destination_location" value="{{ old('destination_location') }}" maxlength="255" placeholder="e.g. SM Caloocan, Barangay Hall 176...">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Trip Date</label>
+                                <input type="date" name="trip_date" id="tripDate" value="{{ old('trip_date') }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Pickup Time</label>
+                                <input type="time" name="pickup_time" value="{{ old('pickup_time') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Additional Details (optional)</label>
+                            <textarea name="notes" rows="3" placeholder="Any extra details the admin should know...">{{ old('notes') }}</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Attachment(s) (optional)</label>
+                            <input type="file" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                            <small class="form-hint">PDF, JPG, or PNG. Max 15MB per file.</small>
+                        </div>
+
+                        <button type="submit" class="btn-primary">🚀 Submit Reservation Request</button>
+                        <small class="form-hint" style="text-align: center; display: block; margin-top: 10px;">Your request will be marked as <strong>Pending</strong> until reviewed by an Admin/Super Admin.</small>
+                    </form>
+                </div>
+
+                <!-- My Requests -->
+                <div class="panel-card">
+                    <div class="panel-title">📋 My Pickup Vehicle Requests</div>
+
+                    @forelse($myReservations as $res)
+                        <div class="request-card">
+                            <div class="request-card-header">
+                                <div>
+                                    <div class="request-code">#{{ $res->reservation_code }}</div>
+                                    <div class="request-purpose">{{ $res->purpose_label }}</div>
+                                </div>
+                                <span class="status-badge status-{{ $res->status }}">{{ strtoupper($res->status) }}</span>
+                            </div>
+                            <div class="request-detail-row">
+                                <span>From:</span>
+                                <span>{{ $res->originCampus->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="request-detail-row">
+                                <span>To:</span>
+                                <span>{{ $res->destination_label }}</span>
+                            </div>
+                            <div class="request-detail-row">
+                                <span>Trip Date:</span>
+                                <span>{{ $res->trip_date->format('M d, Y') }}</span>
+                            </div>
+                            <div class="request-detail-row">
+                                <span>Pickup Time:</span>
+                                <span>{{ \Carbon\Carbon::parse($res->pickup_time)->format('g:i A') }}</span>
+                            </div>
+                            @if($res->status === 'rejected' && $res->remarks)
+                                <div class="request-detail-row" style="color: #dc2626;">
+                                    <span>Reason:</span>
+                                    <span>{{ $res->remarks }}</span>
+                                </div>
+                            @endif
+                            @if($res->status === 'approved')
+                                <div style="margin-top: 10px; text-align: right;">
+                                    <a href="{{ route('report.vehicle.single', $res->id) }}" target="_blank" style="font-size: 12px; font-weight: 700; color: #1a7a3e; text-decoration: none;">📄 Generate Report</a>
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="empty-state">🚐 No pickup vehicle requests yet.</div>
+                    @endforelse
+
+                    <div class="pagination-wrap">
+                        {{ $myReservations->links() }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const purposeSelect = document.getElementById('purposeSelect');
+    const otherPurposeGroup = document.getElementById('otherPurposeGroup');
+    const destTypeCampus = document.getElementById('destTypeCampus');
+    const destTypeOutside = document.getElementById('destTypeOutside');
+    const destinationCampusGroup = document.getElementById('destinationCampusGroup');
+    const destinationLocationGroup = document.getElementById('destinationLocationGroup');
+    const tripDate = document.getElementById('tripDate');
+
+    function toggleOtherPurpose() {
+        otherPurposeGroup.style.display = purposeSelect.value === 'other' ? 'block' : 'none';
+    }
+
+    function toggleDestinationFields() {
+        if (destTypeOutside.checked) {
+            destinationCampusGroup.style.display = 'none';
+            destinationLocationGroup.style.display = 'block';
+        } else {
+            destinationCampusGroup.style.display = 'block';
+            destinationLocationGroup.style.display = 'none';
+        }
+    }
+
+    purposeSelect.addEventListener('change', toggleOtherPurpose);
+    destTypeCampus.addEventListener('change', toggleDestinationFields);
+    destTypeOutside.addEventListener('change', toggleDestinationFields);
+
+    toggleOtherPurpose();
+    toggleDestinationFields();
+
+    // Prevent selecting a past trip date
+    const today = new Date().toISOString().split('T')[0];
+    tripDate.setAttribute('min', today);
+</script>
+@endsection

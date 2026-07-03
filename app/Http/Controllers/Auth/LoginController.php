@@ -43,6 +43,8 @@ class LoginController extends Controller
                 return redirect()->route('password.change');
             }
 
+            $request->session()->put('show_system_update', true);
+
             return redirect()->route('admin.dashboard');
         }
 
@@ -70,6 +72,7 @@ class LoginController extends Controller
             
             // Redirect based on user role
             if ($user->isAdmin()) {
+                $request->session()->put('show_system_update', true);
                 return redirect()->route('admin.dashboard');
             }
             
@@ -82,6 +85,8 @@ class LoginController extends Controller
                 return redirect()->route('user.rejected');
             }
             
+            $request->session()->put('show_system_update', true);
+
             return redirect()->route('dashboard');
         }
 

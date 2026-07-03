@@ -656,6 +656,13 @@
                     </a>
                 </div>
 
+                <div class="nav-item">
+                    <a href="{{ route('admin.vehicle-reservations.index') }}" class="nav-link {{ request()->routeIs('admin.vehicle-reservations.*') ? 'active' : '' }}">
+                        <span class="nav-icon">🚐</span>
+                        <span class="nav-text">Vehicle Reservations</span>
+                    </a>
+                </div>
+
                 <div class="nav-divider"></div>
 
                 <div class="nav-item">
@@ -685,7 +692,7 @@
 
             <div class="sidebar-footer">
                 &copy; {{ date('Y') }} UCC-ERS<br>
-                Version 2.0 beta
+                Version {{ \App\Models\SystemUpdate::currentVersion() }}
             </div>
         </aside>
 

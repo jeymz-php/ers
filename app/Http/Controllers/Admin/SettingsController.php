@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use App\Models\SystemUpdate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -23,20 +24,105 @@ class SettingsController extends Controller
 
         $systemStatus = 'up';
         $maintenanceMessage = '';
+        $systemUpdatesEnabled = true;
 
         try {
             if (Schema::hasTable((new SystemSetting)->getTable())) {
                 $systemStatus = SystemSetting::getValue('system_status', 'up');
                 $maintenanceMessage = SystemSetting::getValue('maintenance_message', '');
+                $systemUpdatesEnabled = SystemSetting::getValue('system_updates_modal_enabled', 'on') === 'on';
             }
         } catch (QueryException $e) {
             Log::warning('Settings index skipped SystemSetting lookup: ' . $e->getMessage());
         }
 
+        $systemUpdates = collect();
+        $nextVersion = '2.1';
+
+        try {
+            if (Schema::hasTable((new SystemUpdate)->getTable())) {
+                $systemUpdates = SystemUpdate::orderByDesc('id')->get();
+                $nextVersion = SystemUpdate::nextVersion();
+            }
+        } catch (QueryException $e) {
+            Log::warning('Settings index skipped SystemUpdate lookup: ' . $e->getMessage());
+        }
+
         return view('admin.settings.index', [
             'systemStatus' => $systemStatus,
             'maintenanceMessage' => $maintenanceMessage,
+            'systemUpdatesEnabled' => $systemUpdatesEnabled,
+            'systemUpdates' => $systemUpdates,
+            'nextVersion' => $nextVersion,
         ]);
+    }
+
+    public function publishSystemUpdate(Request $request)
+    {
+        $request->validate([
+            'updates' => 'required|string',
+        ]);
+
+        try {
+            if (!Schema::hasTable((new SystemUpdate)->getTable())) {
+                return back()->with('error', 'System updates storage is not available. Please run database migrations.');
+            }
+
+            $lines = collect(preg_split('/\r\n|\r|\n/', $request->updates))
+                ->map(fn ($line) => trim($line))
+                ->filter(fn ($line) => $line !== '')
+                ->values()
+                ->all();
+
+            if (empty($lines)) {
+                return back()->with('error', 'Please enter at least one update bullet point.');
+            }
+
+            SystemUpdate::create([
+                'version' => SystemUpdate::nextVersion(),
+                'updates' => $lines,
+                'created_by' => Auth::id(),
+            ]);
+
+            return back()->with('systemUpdateSuccess', 'System update published successfully.');
+        } catch (QueryException $e) {
+            Log::error('System update publish failed: ' . $e->getMessage());
+            return back()->with('error', 'System update publish failed. Please check database configuration.');
+        }
+    }
+
+    public function toggleSystemUpdatesModal(Request $request)
+    {
+        $request->validate([
+            'enabled' => 'required|in:on,off',
+        ]);
+
+        try {
+            if (!Schema::hasTable((new SystemSetting)->getTable())) {
+                return back()->with('error', 'System settings storage is not available. Please run database migrations.');
+            }
+
+            SystemSetting::setValue('system_updates_modal_enabled', $request->enabled);
+
+            $status = $request->enabled === 'on' ? 'enabled' : 'disabled';
+            return back()->with('systemUpdateSuccess', "System updates modal {$status} successfully.");
+        } catch (QueryException $e) {
+            Log::error('System updates toggle failed: ' . $e->getMessage());
+            return back()->with('error', 'System updates toggle failed. Please check database configuration.');
+        }
+    }
+
+    public function deleteSystemUpdate($id)
+    {
+        $update = SystemUpdate::find($id);
+
+        if (!$update) {
+            return back()->with('error', 'System update entry not found.');
+        }
+
+        $update->delete();
+
+        return back()->with('systemUpdateSuccess', 'System update entry deleted.');
     }
 
     public function updateSystemStatus(Request $request)

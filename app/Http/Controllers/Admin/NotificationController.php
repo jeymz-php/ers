@@ -94,6 +94,12 @@ class NotificationController extends Controller
                 'read_at' => now()
             ]);
             
+            // Check if it's a vehicle reservation notification
+            if ($notification->vehicle_reservation_id) {
+                return redirect()->route('admin.vehicle-reservations.show', $notification->vehicle_reservation_id)
+                    ->with('highlight', $notification->vehicle_reservation_id);
+            }
+
             // Check if it's a reservation notification (has reservation_id)
             if ($notification->reservation_id) {
                 // Redirect to reservation page

@@ -12,6 +12,7 @@ class Notification extends Model
     protected $fillable = [
         'user_id',
         'reservation_id',
+        'vehicle_reservation_id',
         'title',
         'message',
         'type',
@@ -32,6 +33,11 @@ class Notification extends Model
     public function reservation()
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    public function vehicleReservation()
+    {
+        return $this->belongsTo(VehicleReservation::class);
     }
 
     public function scopeUnread($query)

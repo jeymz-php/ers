@@ -209,6 +209,13 @@
                 <span class="nav-text">Reservations</span>
             </a>
         </div>
+
+        <div class="nav-item">
+            <a href="{{ route('user.vehicle-reservations') }}" class="nav-link {{ request()->routeIs('user.vehicle-reservations') ? 'active' : '' }}">
+                <span class="nav-icon">🚐</span>
+                <span class="nav-text">Pickup Vehicle</span>
+            </a>
+        </div>
         
         <div class="nav-divider"></div>
 
@@ -239,14 +246,17 @@
         <div class="nav-divider"></div>
         
         <div class="nav-item">
-            <a href="{{ route('user.guide') }}" class="{{ request()->routeIs('user.guide') ? 'active' : '' }}">
-                <i class="..."></i> 📙 User Guide
+            <a href="{{ route('user.guide') }}" class="nav-link {{ request()->routeIs('user.guide') ? 'active' : '' }}">
+                <span class="nav-icon">📙</span>
+                <span class="nav-text">User Guide</span>
             </a>
         </div>
     </nav>
 
     <div class="sidebar-footer">
         &copy; {{ date('Y') }} UCC-ERS<br>
-        Version 2.0 beta
+        Version {{ \App\Models\SystemUpdate::currentVersion() }}
     </div>
 </aside>
+
+@include('partials.system-update-modal')

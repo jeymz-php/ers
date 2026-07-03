@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\User;
+use App\Models\VehicleReservation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,30 @@ class ReportController extends Controller
         
         // Use stream() to display in browser, not download
         return $pdf->stream('reservation_' . $reservation->id . '_' . date('Y-m-d') . '.pdf');
+    }
+
+    public function generateSingleVehicleReport($id)
+    {
+        $reservation = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'approver'])
+            ->findOrFail($id);
+
+        $user = Auth::user();
+
+        // Users may only view the report of their own pickup vehicle reservation.
+        // Admin/Super Admin may view any.
+        if (!$user->isAdmin() && $reservation->user_id !== $user->id) {
+            abort(403, 'You are not authorized to view this report.');
+        }
+
+        $data = [
+            'reservation' => $reservation,
+            'generated_date' => Carbon::now()->format('F d, Y h:i A'),
+        ];
+
+        $pdf = Pdf::loadView('reports.single-vehicle-reservation', $data);
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream('vehicle_reservation_' . $reservation->id . '_' . date('Y-m-d') . '.pdf');
     }
     
     public function generateAllReport(Request $request)

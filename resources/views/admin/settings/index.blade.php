@@ -149,6 +149,124 @@
         cursor: pointer;
         color: #6e7f72;
     }
+
+    /* System Updates */
+    .version-pill {
+        display: inline-block;
+        background: #e8eee9;
+        color: #1a7a3e;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        margin-left: 8px;
+    }
+
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f7faf8;
+        padding: 12px 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .toggle-row-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #33413a;
+    }
+
+    .toggle-row-sub {
+        font-size: 11px;
+        color: #6e7f72;
+        margin-top: 2px;
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 24px;
+        flex-shrink: 0;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .switch-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: #cfd8d2;
+        transition: 0.3s;
+        border-radius: 999px;
+    }
+
+    .switch-slider::before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .switch input:checked + .switch-slider {
+        background-color: #1a7a3e;
+    }
+
+    .switch input:checked + .switch-slider::before {
+        transform: translateX(22px);
+    }
+
+    .update-entry {
+        background: #f7faf8;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+    }
+
+    .update-entry-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .update-entry-version {
+        font-weight: 700;
+        color: #1a7a3e;
+        font-size: 13px;
+    }
+
+    .update-entry-date {
+        font-size: 11px;
+        color: #6e7f72;
+    }
+
+    .update-entry ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: #33413a;
+        line-height: 1.6;
+    }
+
+    .update-entry-delete {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #dc2626;
+    }
     
     @media (max-width: 768px) {
         .settings-container {
@@ -185,6 +303,73 @@
         </form>
 
         <small style="color: #6e7f72; display: block; margin-top: 15px;">Admins can still access the app using the hidden admin login via the UCC logo.</small>
+    </div>
+
+    <!-- System Updates -->
+    <div class="settings-card">
+        <div class="card-title">📢 System Updates <span class="version-pill">Current: v{{ \App\Models\SystemUpdate::currentVersion() }}</span></div>
+
+        @if(session('systemUpdateSuccess'))
+            <div class="alert alert-success">{{ session('systemUpdateSuccess') }}</div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-error">{{ session('error') }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('admin.settings.system-updates.toggle') }}">
+            @csrf
+            <input type="hidden" name="enabled" value="off">
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-row-label">Show System Updates to Users</div>
+                    <div class="toggle-row-sub">When on, the latest update pops up right after User/Admin login.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="enabled" value="on" onchange="this.form.submit()" {{ $systemUpdatesEnabled ? 'checked' : '' }}>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+        </form>
+
+        <form method="POST" action="{{ route('admin.settings.system-updates.publish') }}">
+            @csrf
+            <div class="form-group">
+                <label>Next Version <span class="version-pill">v{{ $nextVersion }}</span></label>
+                <small style="display: block; color: #6e7f72; margin-top: 4px; margin-bottom: 10px;">The version number is generated automatically by the system.</small>
+            </div>
+            <div class="form-group">
+                <label>What's New (one item per line, each becomes a bullet point)</label>
+                <textarea name="updates" rows="5" placeholder="Fixed PDF attachment viewing issue&#10;Added dark mode support&#10;Improved chat response time" required>{{ old('updates') }}</textarea>
+            </div>
+            <button type="submit" class="btn-primary">🚀 Publish Update (v{{ $nextVersion }})</button>
+        </form>
+
+        @if($systemUpdates->count())
+            <div class="backup-list">
+                <div class="card-title" style="font-size: 14px; margin-bottom: 10px;">Update History</div>
+                @foreach($systemUpdates as $update)
+                    <div class="update-entry">
+                        <div class="update-entry-header">
+                            <div>
+                                <span class="update-entry-version">v{{ $update->version }}</span>
+                                <span class="update-entry-date">&middot; {{ $update->created_at->format('M d, Y g:i A') }}</span>
+                            </div>
+                            <form method="POST" action="{{ route('admin.settings.system-updates.destroy', $update->id) }}" onsubmit="return confirm('Delete this update entry?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="update-entry-delete" title="Delete">🗑️</button>
+                            </form>
+                        </div>
+                        <ul>
+                            @foreach($update->updates as $line)
+                                <li>{{ $line }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     <div class="settings-card">
