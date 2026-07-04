@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class VehicleReservation extends Model
 {
@@ -19,6 +20,7 @@ class VehicleReservation extends Model
         'destination_campus_id',
         'destination_location',
         'trip_date',
+        'trip_dates',
         'pickup_time',
         'notes',
         'attachments',
@@ -30,6 +32,7 @@ class VehicleReservation extends Model
 
     protected $casts = [
         'trip_date' => 'date',
+        'trip_dates' => 'array',
         'attachments' => 'array',
         'approved_at' => 'datetime',
     ];
@@ -86,5 +89,92 @@ class VehicleReservation extends Model
         }
 
         return $this->destination_location ?: 'N/A';
+    }
+
+    /**
+     * Normalize a raw list of dates (e.g. straight from a form submission) into
+     * a clean, sorted, de-duplicated array of "Y-m-d" strings. Always
+     * guarantees the given fallback date is present if nothing else parses.
+     *
+     * This is the ONLY place trip dates should be prepared before saving —
+     * always write the *entire* result to the dedicated `trip_dates` column.
+     */
+    public static function normalizeTripDates($dates, $fallbackDate = null): array
+    {
+        $normalized = [];
+
+        if (is_array($dates)) {
+            foreach ($dates as $date) {
+                if (empty($date)) {
+                    continue;
+                }
+
+                try {
+                    $normalized[] = Carbon::parse($date)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+        }
+
+        if (empty($normalized) && $fallbackDate) {
+            try {
+                $normalized[] = Carbon::parse($fallbackDate)->format('Y-m-d');
+            } catch (\Exception $e) {
+                // ignore unparsable fallback
+            }
+        }
+
+        $normalized = array_values(array_unique($normalized));
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    /**
+     * Check which of the given candidate dates are already taken by an
+     * approved pickup vehicle reservation.
+     *
+     * @param  array  $selectedDates
+     * @param  \App\Models\VehicleReservation[]|iterable  $existingReservations
+     */
+    public static function getConflictingTripDates(array $selectedDates, iterable $existingReservations): array
+    {
+        $conflicts = [];
+
+        foreach ($selectedDates as $selectedDate) {
+            foreach ($existingReservations as $reservation) {
+                $tripDates = is_object($reservation) ? ($reservation->trip_dates ?? []) : [];
+
+                if (in_array($selectedDate, $tripDates, true)) {
+                    $conflicts[] = $selectedDate;
+                    break;
+                }
+            }
+        }
+
+        return array_values(array_unique($conflicts));
+    }
+
+    public function getTripDatesDisplayAttribute(): string
+    {
+        $dates = $this->trip_dates ?: ($this->trip_date ? [$this->trip_date->format('Y-m-d')] : []);
+
+        if (empty($dates)) {
+            return 'N/A';
+        }
+
+        if (count($dates) === 1) {
+            return Carbon::parse($dates[0])->format('F d, Y');
+        }
+
+        return implode(', ', array_map(function ($date) {
+            return Carbon::parse($date)->format('F d, Y');
+        }, $dates));
+    }
+
+    public function getIsMultiDateAttribute(): bool
+    {
+        return count($this->trip_dates ?? []) > 1;
     }
 }

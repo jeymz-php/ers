@@ -89,6 +89,84 @@
         margin-bottom: 20px;
     }
 
+    .date-picker-card {
+        border: 1px solid #e8eee9;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fcfdfc;
+    }
+
+    .date-picker-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .date-picker-nav button {
+        border: none;
+        background: #f0faf3;
+        color: #1a7a3e;
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-weight: 700;
+    }
+
+    .date-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .date-picker-cell {
+        border: 1px solid #e8eee9;
+        border-radius: 8px;
+        padding: 6px 0;
+        text-align: center;
+        font-size: 12px;
+        cursor: pointer;
+        color: #3c4a3f;
+        background: white;
+    }
+
+    .date-picker-cell.other-month {
+        opacity: 0.45;
+    }
+
+    .date-picker-cell.selected {
+        background: #d4f5df;
+        border-color: #2db84f;
+        color: #1a7a3e;
+        font-weight: 700;
+    }
+
+    .date-picker-cell.disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+    }
+
+    .selected-date-list {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f7faf8;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #3c4a3f;
+    }
+
+    .selected-date-chip {
+        display: inline-block;
+        background: #e9f8eb;
+        color: #1a7a3e;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        margin: 3px 4px 0 0;
+    }
+
     @media (max-width: 768px) {
         .form-row { grid-template-columns: 1fr; }
     }
@@ -186,15 +264,27 @@
                 <input type="text" name="destination_location" value="{{ old('destination_location') }}" maxlength="255" placeholder="e.g. SM Caloocan, Barangay Hall 176...">
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Trip Date</label>
-                    <input type="date" name="trip_date" value="{{ old('trip_date') }}" required>
+            <div class="form-group">
+                <label>Trip Date(s)</label>
+                <div class="date-picker-card">
+                    <div class="date-picker-header">
+                        <strong id="adminDatePickerMonthLabel"></strong>
+                        <div class="date-picker-nav">
+                            <button type="button" onclick="changeAdminTripDatePickerMonth(-1)">←</button>
+                            <button type="button" onclick="goToAdminTripDatePickerToday()">Today</button>
+                            <button type="button" onclick="changeAdminTripDatePickerMonth(1)">→</button>
+                        </div>
+                    </div>
+                    <div class="date-picker-grid" id="adminTripDatePickerGrid"></div>
+                    <div class="selected-date-list" id="adminSelectedTripDatesList">No dates selected yet.</div>
+                    <input type="hidden" name="trip_date" id="adminTripDate" value="{{ old('trip_date') }}">
+                    <div id="adminTripDateInputs"></div>
                 </div>
-                <div class="form-group">
-                    <label>Pickup Time</label>
-                    <input type="time" name="pickup_time" value="{{ old('pickup_time') }}" required>
-                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Pickup Time</label>
+                <input type="time" name="pickup_time" value="{{ old('pickup_time') }}" required>
             </div>
 
             <div class="form-group">
@@ -240,7 +330,138 @@
     destTypeCampus.addEventListener('change', toggleDestinationFields);
     destTypeOutside.addEventListener('change', toggleDestinationFields);
 
+    let selectedAdminTripDates = @json(old('trip_dates', [old('trip_date')]));
+    selectedAdminTripDates = (Array.isArray(selectedAdminTripDates) ? selectedAdminTripDates : [selectedAdminTripDates]).filter(Boolean);
+    let adminTripDatePickerMonth = new Date().getMonth();
+    let adminTripDatePickerYear = new Date().getFullYear();
+    let bookedAdminTripDates = {};
+
+    function formatAdminTripDatePickerMonthTitle(year, month) {
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        return `${monthNames[month]} ${year}`;
+    }
+
+    function formatAdminTripDateKey(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function loadBookedAdminTripDates() {
+        fetch(`/availability/vehicles?campus_id=all&month=${adminTripDatePickerMonth + 1}&year=${adminTripDatePickerYear}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bookedAdminTripDates = data.dates || {};
+                }
+                renderAdminTripDatePicker();
+            })
+            .catch(() => {
+                renderAdminTripDatePicker();
+            });
+    }
+
+    function renderAdminTripDatePicker() {
+        const firstDay = new Date(adminTripDatePickerYear, adminTripDatePickerMonth, 1);
+        const lastDay = new Date(adminTripDatePickerYear, adminTripDatePickerMonth + 1, 0);
+        const startingDay = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+        const prevMonthLastDay = new Date(adminTripDatePickerYear, adminTripDatePickerMonth, 0).getDate();
+
+        let calendarHTML = '';
+        let dayCounter = 1;
+
+        for (let i = 0; i < 42; i++) {
+            let dayNumber = '';
+            let dateStr = '';
+            let isCurrentMonth = true;
+
+            if (i < startingDay) {
+                dayNumber = prevMonthLastDay - (startingDay - i) + 1;
+                const prevDate = new Date(adminTripDatePickerYear, adminTripDatePickerMonth - 1, dayNumber);
+                dateStr = formatAdminTripDateKey(prevDate);
+                isCurrentMonth = false;
+            } else if (dayCounter > daysInMonth) {
+                dayNumber = dayCounter - daysInMonth;
+                const nextDate = new Date(adminTripDatePickerYear, adminTripDatePickerMonth + 1, dayNumber);
+                dateStr = formatAdminTripDateKey(nextDate);
+                isCurrentMonth = false;
+                dayCounter++;
+            } else {
+                const thisDate = new Date(adminTripDatePickerYear, adminTripDatePickerMonth, dayCounter);
+                dayNumber = dayCounter;
+                dateStr = formatAdminTripDateKey(thisDate);
+                dayCounter++;
+            }
+
+            const isSelected = selectedAdminTripDates.includes(dateStr);
+            const isBooked = isCurrentMonth && Boolean(bookedAdminTripDates[dateStr] && bookedAdminTripDates[dateStr].length > 0);
+            const cellClasses = ['date-picker-cell', isCurrentMonth ? '' : 'other-month', isSelected ? 'selected' : '', isBooked ? 'disabled' : ''];
+            const clickHandler = isBooked ? '' : `toggleAdminTripDate('${dateStr}')`;
+            calendarHTML += `<div class="${cellClasses.filter(Boolean).join(' ')}" onclick="${clickHandler}">${dayNumber}</div>`;
+        }
+
+        document.getElementById('adminTripDatePickerGrid').innerHTML = calendarHTML;
+        document.getElementById('adminDatePickerMonthLabel').textContent = formatAdminTripDatePickerMonthTitle(adminTripDatePickerYear, adminTripDatePickerMonth);
+        updateAdminTripDateSummary();
+    }
+
+    function updateAdminTripDateSummary() {
+        const hiddenTripDate = document.getElementById('adminTripDate');
+        const inputsContainer = document.getElementById('adminTripDateInputs');
+        const details = document.getElementById('adminSelectedTripDatesList');
+
+        hiddenTripDate.value = selectedAdminTripDates[0] || '';
+        inputsContainer.innerHTML = '';
+
+        selectedAdminTripDates.forEach(date => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'trip_dates[]';
+            input.value = date;
+            inputsContainer.appendChild(input);
+        });
+
+        if (selectedAdminTripDates.length === 0) {
+            details.innerHTML = 'No dates selected yet.';
+            return;
+        }
+
+        details.innerHTML = selectedAdminTripDates.map(date => `<span class="selected-date-chip">${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`).join('');
+    }
+
+    function toggleAdminTripDate(dateKey) {
+        if (selectedAdminTripDates.includes(dateKey)) {
+            selectedAdminTripDates = selectedAdminTripDates.filter(item => item !== dateKey);
+        } else {
+            selectedAdminTripDates = [...selectedAdminTripDates, dateKey].sort((a, b) => new Date(a) - new Date(b));
+        }
+        updateAdminTripDateSummary();
+        renderAdminTripDatePicker();
+    }
+
+    function changeAdminTripDatePickerMonth(direction) {
+        adminTripDatePickerMonth += direction;
+        if (adminTripDatePickerMonth < 0) {
+            adminTripDatePickerMonth = 11;
+            adminTripDatePickerYear -= 1;
+        } else if (adminTripDatePickerMonth > 11) {
+            adminTripDatePickerMonth = 0;
+            adminTripDatePickerYear += 1;
+        }
+        loadBookedAdminTripDates();
+    }
+
+    function goToAdminTripDatePickerToday() {
+        const today = new Date();
+        adminTripDatePickerMonth = today.getMonth();
+        adminTripDatePickerYear = today.getFullYear();
+        loadBookedAdminTripDates();
+    }
+
     toggleOtherPurpose();
     toggleDestinationFields();
+    loadBookedAdminTripDates();
 </script>
 @endsection

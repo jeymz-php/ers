@@ -643,6 +643,7 @@
                         <div><strong>From:</strong> ${vehicle.origin_campus}</div>
                         <div><strong>Destination:</strong> ${vehicle.destination}</div>
                         <div><strong>Requested by:</strong> ${vehicle.requestor}</div>
+                        ${vehicle.is_multi_date ? `<div><strong>Reserved on:</strong> ${vehicle.trip_dates.join(', ')}</div>` : ''}
                     </div>
                 </div>
             `).join('');

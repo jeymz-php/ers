@@ -367,6 +367,95 @@
         padding: 4px 0;
     }
 
+    .date-picker-card {
+        border: 1px solid #e8eee9;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fcfdfc;
+    }
+
+    .date-picker-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .date-picker-nav {
+        display: flex;
+        gap: 6px;
+    }
+
+    .date-picker-nav button {
+        border: none;
+        background: #f0faf3;
+        color: #1a7a3e;
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-weight: 700;
+    }
+
+    .date-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .date-picker-cell {
+        border: 1px solid #e8eee9;
+        border-radius: 8px;
+        padding: 6px 0;
+        text-align: center;
+        font-size: 12px;
+        cursor: pointer;
+        color: #3c4a3f;
+        background: white;
+    }
+
+    .date-picker-cell.other-month {
+        opacity: 0.45;
+    }
+
+    .date-picker-cell.selected {
+        background: #d4f5df;
+        border-color: #2db84f;
+        color: #1a7a3e;
+        font-weight: 700;
+    }
+
+    .date-picker-cell.disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+    }
+
+    .selected-date-list {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f7faf8;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #3c4a3f;
+    }
+
+    .selected-date-chip {
+        display: inline-block;
+        background: #e9f8eb;
+        color: #1a7a3e;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        margin: 3px 4px 0 0;
+    }
+
+    .date-picker-note {
+        font-size: 11px;
+        color: #6e7f72;
+        margin-top: 6px;
+    }
+
     @media (max-width: 992px) {
         .vehicle-layout {
             grid-template-columns: 1fr;
@@ -487,15 +576,28 @@
                             <input type="text" name="destination_location" value="{{ old('destination_location') }}" maxlength="255" placeholder="e.g. SM Caloocan, Barangay Hall 176...">
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Trip Date</label>
-                                <input type="date" name="trip_date" id="tripDate" value="{{ old('trip_date') }}" required>
+                        <div class="form-group">
+                            <label>Trip Date(s)</label>
+                            <div class="date-picker-card">
+                                <div class="date-picker-header">
+                                    <strong id="datePickerMonthLabel"></strong>
+                                    <div class="date-picker-nav">
+                                        <button type="button" onclick="changeTripDatePickerMonth(-1)">←</button>
+                                        <button type="button" onclick="goToTripDatePickerToday()">Today</button>
+                                        <button type="button" onclick="changeTripDatePickerMonth(1)">→</button>
+                                    </div>
+                                </div>
+                                <div class="date-picker-grid" id="tripDatePickerGrid"></div>
+                                <div class="date-picker-note">Click the calendar to select one or more dates. The selected dates will appear below.</div>
+                                <div class="selected-date-list" id="selectedTripDatesList">No dates selected yet.</div>
+                                <input type="hidden" name="trip_date" id="tripDate" value="{{ old('trip_date') }}">
+                                <div id="tripDateInputs"></div>
                             </div>
-                            <div class="form-group">
-                                <label>Pickup Time</label>
-                                <input type="time" name="pickup_time" value="{{ old('pickup_time') }}" required>
-                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Pickup Time</label>
+                            <input type="time" name="pickup_time" value="{{ old('pickup_time') }}" required>
                         </div>
 
                         <div class="form-group">
@@ -510,7 +612,7 @@
                         </div>
 
                         <button type="submit" class="btn-primary">🚀 Submit Reservation Request</button>
-                        <small class="form-hint" style="text-align: center; display: block; margin-top: 10px;">Your request will be marked as <strong>Pending</strong> until reviewed by an Admin/Super Admin.</small>
+                        <small class="form-hint" style="text-align: center; display: block; margin-top: 10px;">Your request will be marked as <strong>Pending</strong> until reviewed by an Administrator.</small>
                     </form>
                 </div>
 
@@ -555,8 +657,18 @@
                             </div>
                             <div class="request-detail-row">
                                 <span>Trip Date:</span>
-                                <span>{{ $res->trip_date->format('M d, Y') }}</span>
+                                <span>{{ $res->trip_dates_display }}</span>
                             </div>
+                            @if(count($res->trip_dates) > 1)
+                                <div class="request-detail-row" style="display:block;">
+                                    <span>Selected Dates:</span>
+                                    <div style="margin-top: 4px;">
+                                        @foreach($res->trip_dates as $tripDate)
+                                            <span class="selected-date-chip">{{ \Carbon\Carbon::parse($tripDate)->format('M d, Y') }}</span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                             <div class="request-detail-row">
                                 <span>Pickup Time:</span>
                                 <span>{{ \Carbon\Carbon::parse($res->pickup_time)->format('g:i A') }}</span>
@@ -616,9 +728,138 @@
     toggleOtherPurpose();
     toggleDestinationFields();
 
-    // Prevent selecting a past trip date
-    const today = new Date().toISOString().split('T')[0];
-    tripDate.setAttribute('min', today);
+    const initialTripDates = @json(old('trip_dates', [old('trip_date')]));
+    let selectedTripDates = (Array.isArray(initialTripDates) ? initialTripDates : [initialTripDates]).filter(Boolean);
+    let tripDatePickerMonth = new Date().getMonth();
+    let tripDatePickerYear = new Date().getFullYear();
+    let bookedTripDates = {};
+
+    function formatTripDatePickerMonthTitle(year, month) {
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        return `${monthNames[month]} ${year}`;
+    }
+
+    function loadBookedTripDates() {
+        fetch(`/availability/vehicles?campus_id=all&month=${tripDatePickerMonth + 1}&year=${tripDatePickerYear}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bookedTripDates = data.dates || {};
+                }
+                renderTripDatePicker();
+            })
+            .catch(() => {
+                renderTripDatePicker();
+            });
+    }
+
+    function renderTripDatePicker() {
+        const firstDay = new Date(tripDatePickerYear, tripDatePickerMonth, 1);
+        const lastDay = new Date(tripDatePickerYear, tripDatePickerMonth + 1, 0);
+        const startingDay = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+        const prevMonthLastDay = new Date(tripDatePickerYear, tripDatePickerMonth, 0).getDate();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let calendarHTML = '';
+        let dayCounter = 1;
+
+        for (let i = 0; i < 42; i++) {
+            let dayNumber = '';
+            let dateStr = '';
+            let isCurrentMonth = true;
+            let isDisabled = false;
+
+            if (i < startingDay) {
+                dayNumber = prevMonthLastDay - (startingDay - i) + 1;
+                const prevDate = new Date(tripDatePickerYear, tripDatePickerMonth - 1, dayNumber);
+                dateStr = formatVehicleDateKey(prevDate);
+                isCurrentMonth = false;
+            } else if (dayCounter > daysInMonth) {
+                dayNumber = dayCounter - daysInMonth;
+                const nextDate = new Date(tripDatePickerYear, tripDatePickerMonth + 1, dayNumber);
+                dateStr = formatVehicleDateKey(nextDate);
+                isCurrentMonth = false;
+                dayCounter++;
+            } else {
+                const thisDate = new Date(tripDatePickerYear, tripDatePickerMonth, dayCounter);
+                dayNumber = dayCounter;
+                dateStr = formatVehicleDateKey(thisDate);
+                dayCounter++;
+                const compareDate = new Date(thisDate);
+                compareDate.setHours(0, 0, 0, 0);
+                isDisabled = compareDate < today;
+            }
+
+            const isSelected = selectedTripDates.includes(dateStr);
+            const isBooked = isCurrentMonth && Boolean(bookedTripDates[dateStr] && bookedTripDates[dateStr].length > 0);
+            const cellClasses = ['date-picker-cell', isCurrentMonth ? '' : 'other-month', isSelected ? 'selected' : '', isDisabled || isBooked ? 'disabled' : ''];
+            const clickHandler = isCurrentMonth && !isDisabled && !isBooked ? `toggleTripDate('${dateStr}')` : '';
+            calendarHTML += `
+                <div class="${cellClasses.filter(Boolean).join(' ')}" onclick="${clickHandler}">
+                    ${dayNumber}
+                </div>
+            `;
+        }
+
+        document.getElementById('tripDatePickerGrid').innerHTML = calendarHTML;
+        document.getElementById('datePickerMonthLabel').textContent = formatTripDatePickerMonthTitle(tripDatePickerYear, tripDatePickerMonth);
+        updateTripDateSummary();
+    }
+
+    function updateTripDateSummary() {
+        const hiddenTripDate = document.getElementById('tripDate');
+        const inputsContainer = document.getElementById('tripDateInputs');
+        const details = document.getElementById('selectedTripDatesList');
+
+        hiddenTripDate.value = selectedTripDates[0] || '';
+        inputsContainer.innerHTML = '';
+
+        selectedTripDates.forEach(date => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'trip_dates[]';
+            input.value = date;
+            inputsContainer.appendChild(input);
+        });
+
+        if (selectedTripDates.length === 0) {
+            details.innerHTML = 'No dates selected yet.';
+            return;
+        }
+
+        details.innerHTML = selectedTripDates.map(date => `<span class="selected-date-chip">${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`).join('');
+    }
+
+    function toggleTripDate(dateKey) {
+        if (selectedTripDates.includes(dateKey)) {
+            selectedTripDates = selectedTripDates.filter(item => item !== dateKey);
+        } else {
+            selectedTripDates = [...selectedTripDates, dateKey].sort((a, b) => new Date(a) - new Date(b));
+        }
+        updateTripDateSummary();
+        renderTripDatePicker();
+    }
+
+    function changeTripDatePickerMonth(direction) {
+        tripDatePickerMonth += direction;
+        if (tripDatePickerMonth < 0) {
+            tripDatePickerMonth = 11;
+            tripDatePickerYear -= 1;
+        } else if (tripDatePickerMonth > 11) {
+            tripDatePickerMonth = 0;
+            tripDatePickerYear += 1;
+        }
+        loadBookedTripDates();
+    }
+
+    function goToTripDatePickerToday() {
+        const today = new Date();
+        tripDatePickerMonth = today.getMonth();
+        tripDatePickerYear = today.getFullYear();
+        loadBookedTripDates();
+    }
 
     let vehicleCalendarDate = new Date();
     let vehicleCalendarMonth = vehicleCalendarDate.getMonth();
@@ -746,6 +987,7 @@
         loadVehicleCalendar();
     }
 
+    loadBookedTripDates();
     loadVehicleCalendar();
 </script>
 @endsection

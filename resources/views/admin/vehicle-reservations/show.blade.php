@@ -154,8 +154,18 @@
         </div>
         <div class="detail-row">
             <span class="detail-label">Trip Date:</span>
-            <span class="detail-value">{{ $reservation->trip_date->format('F d, Y (l)') }}</span>
+            <span class="detail-value">{{ $reservation->trip_dates_display }}</span>
         </div>
+        @if(count($reservation->trip_dates) > 1)
+        <div class="detail-row">
+            <span class="detail-label">Selected Dates:</span>
+            <span class="detail-value">
+                @foreach($reservation->trip_dates as $tripDate)
+                    <span class="status-badge" style="background: #f0faf3; color: #1a7a3e; margin: 2px;">{{ \Carbon\Carbon::parse($tripDate)->format('M d, Y') }}</span>
+                @endforeach
+            </span>
+        </div>
+        @endif
         <div class="detail-row">
             <span class="detail-label">Pickup Time:</span>
             <span class="detail-value">{{ \Carbon\Carbon::parse($reservation->pickup_time)->format('g:i A') }}</span>
@@ -261,6 +271,13 @@
         </div>
     </form>
 </div>
+
+        @if($reservation->status === 'approved' && $reservation->remarks)
+        <div class="detail-row">
+            <span class="detail-label">Admin Notes:</span>
+            <span class="detail-value">{{ $reservation->remarks }}</span>
+        </div>
+        @endif
 
 <div style="text-align: center; margin-top: 20px;">
     <a href="{{ route('admin.vehicle-reservations.index') }}" style="color: #1a7a3e; text-decoration: none;">← Back to Vehicle Reservations</a>

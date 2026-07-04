@@ -222,7 +222,13 @@
                 <td>{{ $res->originCampus->name ?? 'N/A' }}</td>
                 <td>{{ $res->purpose_label }}</td>
                 <td>{{ $res->destination_label }}</td>
-                <td>{{ $res->trip_date->format('M d, Y') }}</td>
+                <td>
+                    @if(count($res->trip_dates) > 1)
+                        <span title="{{ $res->trip_dates_display }}">{{ $res->trip_dates_display }}</span>
+                    @else
+                        {{ $res->trip_date->format('M d, Y') }}
+                    @endif
+                </td>
                 <td>{{ \Carbon\Carbon::parse($res->pickup_time)->format('g:i A') }}</td>
                 <td><span class="status-badge status-{{ $res->status }}">{{ strtoupper($res->status) }}</span></td>
                 <td>

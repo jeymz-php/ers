@@ -252,8 +252,19 @@
                         <div class="info-value">{{ $reservation->purpose_label }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label">Trip Date:</div>
-                        <div class="info-value">{{ \Carbon\Carbon::parse($reservation->trip_date)->format('F d, Y') }}</div>
+                        <div class="info-label">Trip Date(s):</div>
+                        <div class="info-value">
+                            {{ $reservation->trip_dates_display }}
+                            @if(count($reservation->trip_dates) > 1)
+                                <div class="date-list">
+                                    <ul>
+                                        @foreach($reservation->trip_dates as $tripDate)
+                                            <li>{{ \Carbon\Carbon::parse($tripDate)->format('F d, Y') }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">Pickup Time:</div>

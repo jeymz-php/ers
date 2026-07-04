@@ -154,36 +154,38 @@ class AvailabilityController extends Controller
             $query = VehicleReservation::with(['originCampus', 'destinationCampus', 'user'])
                 ->where('status', 'approved');
 
-            if ($campusId && $campusId !== 'all') {
-                $query->where('origin_campus_id', $campusId);
-            }
-
             $reservations = $query->orderBy('trip_date')->get();
             $dates = [];
 
             foreach ($reservations as $reservation) {
-                $dateKey = Carbon::parse($reservation->trip_date)->format('Y-m-d');
+                $tripDates = $reservation->trip_dates;
 
-                if ($month && $year) {
-                    $dateObj = Carbon::parse($reservation->trip_date);
-                    if ($dateObj->month !== $month || $dateObj->year !== $year) {
-                        continue;
+                foreach ($tripDates as $tripDate) {
+                    $dateKey = Carbon::parse($tripDate)->format('Y-m-d');
+
+                    if ($month && $year) {
+                        $dateObj = Carbon::parse($tripDate);
+                        if ($dateObj->month !== $month || $dateObj->year !== $year) {
+                            continue;
+                        }
                     }
-                }
 
-                if (!isset($dates[$dateKey])) {
-                    $dates[$dateKey] = [];
-                }
+                    if (!isset($dates[$dateKey])) {
+                        $dates[$dateKey] = [];
+                    }
 
-                $dates[$dateKey][] = [
-                    'id' => $reservation->id,
-                    'code' => $reservation->reservation_code,
-                    'purpose' => $reservation->purpose_label,
-                    'time' => Carbon::parse($reservation->pickup_time)->format('g:i A'),
-                    'origin_campus' => $reservation->originCampus?->name ?? 'Unknown Campus',
-                    'destination' => $reservation->destination_label,
-                    'requestor' => $reservation->user?->name ?? 'Guest',
-                ];
+                    $dates[$dateKey][] = [
+                        'id' => $reservation->id,
+                        'code' => $reservation->reservation_code,
+                        'purpose' => $reservation->purpose_label,
+                        'time' => Carbon::parse($reservation->pickup_time)->format('g:i A'),
+                        'origin_campus' => $reservation->originCampus?->name ?? 'Unknown Campus',
+                        'destination' => $reservation->destination_label,
+                        'requestor' => $reservation->user?->name ?? 'Guest',
+                        'trip_dates' => $tripDates,
+                        'is_multi_date' => count($tripDates) > 1,
+                    ];
+                }
             }
 
             return response()->json([
@@ -209,14 +211,15 @@ class AvailabilityController extends Controller
             $query = VehicleReservation::with(['originCampus', 'destinationCampus', 'user'])
                 ->where('status', 'approved');
 
-            if ($campusId && $campusId !== 'all') {
-                $query->where('origin_campus_id', $campusId);
-            }
-
-            $reservations = $query->whereDate('trip_date', $date)->orderBy('pickup_time')->get();
+            $reservations = $query->orderBy('trip_date')->get();
             $items = [];
 
             foreach ($reservations as $reservation) {
+                $tripDates = $reservation->trip_dates;
+                if (!in_array($date, $tripDates, true)) {
+                    continue;
+                }
+
                 $items[] = [
                     'id' => $reservation->id,
                     'code' => $reservation->reservation_code,
@@ -225,6 +228,8 @@ class AvailabilityController extends Controller
                     'origin_campus' => $reservation->originCampus?->name ?? 'Unknown Campus',
                     'destination' => $reservation->destination_label,
                     'requestor' => $reservation->user?->name ?? 'Guest',
+                    'trip_dates' => $tripDates,
+                    'is_multi_date' => count($tripDates) > 1,
                 ];
             }
 

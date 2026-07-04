@@ -187,8 +187,8 @@
                     <span>{{ $reservation->destination_label }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Trip Date:</span>
-                    <span>{{ \Carbon\Carbon::parse($reservation->trip_date)->format('F d, Y') }}</span>
+                    <span class="detail-label">{{ $reservation->is_multi_date ? 'Trip Dates:' : 'Trip Date:' }}</span>
+                    <span>{{ $reservation->trip_dates_display }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Pickup Time:</span>

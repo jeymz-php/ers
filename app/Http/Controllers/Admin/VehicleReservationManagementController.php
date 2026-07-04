@@ -78,6 +78,8 @@ class VehicleReservationManagementController extends Controller
             'destination_campus_id' => 'required_if:destination_type,campus|nullable|exists:campuses,id',
             'destination_location' => 'required_if:destination_type,outside|nullable|string|max:255',
             'trip_date' => 'required|date',
+            'trip_dates' => 'nullable|array',
+            'trip_dates.*' => 'required|date',
             'pickup_time' => 'required',
             'notes' => 'nullable|string|max:1000',
             'attachments.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360',
@@ -91,6 +93,20 @@ class VehicleReservationManagementController extends Controller
             }
         }
 
+        $tripDates = VehicleReservation::normalizeTripDates(
+            $request->input('trip_dates', []),
+            $request->trip_date
+        );
+
+        $approvedReservations = VehicleReservation::where('status', 'approved')->get();
+        $conflictingDates = VehicleReservation::getConflictingTripDates($tripDates, $approvedReservations);
+
+        if (!empty($conflictingDates)) {
+            return back()->withInput()->withErrors([
+                'trip_dates' => 'The following dates are already reserved for pickup vehicle: ' . implode(', ', $conflictingDates),
+            ]);
+        }
+
         $reservation = VehicleReservation::create([
             'user_id' => $request->user_id,
             'requester_type' => $request->requester_type,
@@ -100,7 +116,8 @@ class VehicleReservationManagementController extends Controller
             'destination_type' => $request->destination_type,
             'destination_campus_id' => $request->destination_type === 'campus' ? $request->destination_campus_id : null,
             'destination_location' => $request->destination_type === 'outside' ? $request->destination_location : null,
-            'trip_date' => $request->trip_date,
+            'trip_date' => $tripDates[0],
+            'trip_dates' => $tripDates,
             'pickup_time' => $request->pickup_time,
             'notes' => $request->notes,
             'attachments' => $attachmentPaths,
@@ -123,12 +140,21 @@ class VehicleReservationManagementController extends Controller
     {
         $reservation = VehicleReservation::findOrFail($id);
 
-        $reservation->update([
+        // Note: trip_dates is intentionally never touched here. Approving a
+        // reservation must never be able to alter the dates that were
+        // originally requested.
+        $updateData = [
             'status' => 'approved',
             'approved_at' => now(),
             'approved_by' => Auth::id(),
-            'remarks' => request('admin_notes'),
-        ]);
+        ];
+
+        $adminNotes = request('admin_notes');
+        if (!empty($adminNotes)) {
+            $updateData['remarks'] = $adminNotes;
+        }
+
+        $reservation->update($updateData);
 
         try {
             Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'approver']), 'approved'));
@@ -148,6 +174,7 @@ class VehicleReservationManagementController extends Controller
 
         $reservation = VehicleReservation::findOrFail($id);
 
+        // Note: trip_dates is intentionally never touched here either.
         $reservation->update([
             'status' => 'rejected',
             'remarks' => $request->rejection_reason,
