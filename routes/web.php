@@ -52,6 +52,8 @@ Route::middleware(['checkSystemStatus'])->group(function () {
     Route::get('/availability', [AvailabilityController::class, 'index'])->name('public.availability.index');
     Route::get('/availability/events', [AvailabilityController::class, 'getEvents'])->name('public.availability.events');
     Route::get('/availability/day', [AvailabilityController::class, 'getDayEvents'])->name('public.availability.day');
+    Route::get('/availability/vehicles', [AvailabilityController::class, 'getVehicleAvailability'])->name('public.availability.vehicles');
+    Route::get('/availability/vehicles/day', [AvailabilityController::class, 'getVehicleDayAvailability'])->name('public.availability.vehicles.day');
 
     /*
     |--------------------------------------------------------------------------

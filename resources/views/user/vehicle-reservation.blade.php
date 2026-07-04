@@ -264,6 +264,109 @@
         margin-top: 15px;
     }
 
+    .calendar-card {
+        margin-top: 20px;
+        border: 1px solid #e8eee9;
+        border-radius: 16px;
+        padding: 18px;
+        background: #fcfdfc;
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .calendar-month {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1a7a3e;
+    }
+
+    .calendar-nav {
+        display: flex;
+        gap: 8px;
+    }
+
+    .calendar-nav button {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #f0faf3;
+        color: #1a7a3e;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .calendar-weekdays div {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #6e7f72;
+        padding: 6px 0;
+    }
+
+    .calendar-day {
+        min-height: 56px;
+        border-radius: 10px;
+        padding: 8px;
+        background: #f7faf8;
+        border: 1px solid transparent;
+        position: relative;
+        font-size: 12px;
+        color: #2a3f33;
+    }
+
+    .calendar-day.other-month {
+        opacity: 0.5;
+    }
+
+    .calendar-day.has-reservation {
+        border-color: #2db84f;
+        background: #e9f8eb;
+    }
+
+    .calendar-day .day-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #2db84f;
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+    }
+
+    .calendar-details {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #f7fbff;
+        border: 1px solid #d8e7f2;
+    }
+
+    .calendar-details h4 {
+        font-size: 13px;
+        color: #1a7a3e;
+        margin-bottom: 8px;
+    }
+
+    .calendar-details .detail-item {
+        font-size: 12px;
+        color: #3c4a3f;
+        padding: 4px 0;
+    }
+
     @media (max-width: 992px) {
         .vehicle-layout {
             grid-template-columns: 1fr;
@@ -415,6 +518,24 @@
                 <div class="panel-card">
                     <div class="panel-title">📋 My Pickup Vehicle Requests</div>
 
+                    <div class="calendar-card">
+                        <div class="calendar-header">
+                            <div class="calendar-month" id="vehicleCalendarMonth"></div>
+                            <div class="calendar-nav">
+                                <button type="button" onclick="changeVehicleMonth(-1)">←</button>
+                                <button type="button" onclick="goToVehicleToday()">Today</button>
+                                <button type="button" onclick="changeVehicleMonth(1)">→</button>
+                            </div>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div class="calendar-grid" id="vehicleCalendarDays"></div>
+                        <div class="calendar-details" id="vehicleCalendarDetails">
+                            <h4>Select a highlighted date to see pickup vehicle reservations.</h4>
+                        </div>
+                    </div>
+
                     @forelse($myReservations as $res)
                         <div class="request-card">
                             <div class="request-card-header">
@@ -498,5 +619,133 @@
     // Prevent selecting a past trip date
     const today = new Date().toISOString().split('T')[0];
     tripDate.setAttribute('min', today);
+
+    let vehicleCalendarDate = new Date();
+    let vehicleCalendarMonth = vehicleCalendarDate.getMonth();
+    let vehicleCalendarYear = vehicleCalendarDate.getFullYear();
+    let selectedVehicleDate = null;
+    let vehicleReservationsByDate = {};
+
+    function formatVehicleMonthTitle(year, month) {
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        return `${monthNames[month]} ${year}`;
+    }
+
+    function formatVehicleDateKey(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function loadVehicleCalendar() {
+        fetch(`/availability/vehicles?campus_id=all&month=${vehicleCalendarMonth + 1}&year=${vehicleCalendarYear}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    vehicleReservationsByDate = data.dates;
+                    renderVehicleCalendar();
+                }
+            })
+            .catch(error => console.error('Failed to load vehicle calendar:', error));
+    }
+
+    function renderVehicleCalendar() {
+        const firstDay = new Date(vehicleCalendarYear, vehicleCalendarMonth, 1);
+        const lastDay = new Date(vehicleCalendarYear, vehicleCalendarMonth + 1, 0);
+        const startingDay = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+        const prevMonthLastDay = new Date(vehicleCalendarYear, vehicleCalendarMonth, 0).getDate();
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let calendarHTML = '';
+        let dayCounter = 1;
+
+        for (let i = 0; i < 42; i++) {
+            let dayNumber = '';
+            let dateStr = '';
+            let isCurrentMonth = true;
+            let hasReservation = false;
+
+            if (i < startingDay) {
+                dayNumber = prevMonthLastDay - (startingDay - i) + 1;
+                const prevDate = new Date(vehicleCalendarYear, vehicleCalendarMonth - 1, dayNumber);
+                dateStr = formatVehicleDateKey(prevDate);
+                isCurrentMonth = false;
+            } else if (dayCounter > daysInMonth) {
+                dayNumber = dayCounter - daysInMonth;
+                const nextDate = new Date(vehicleCalendarYear, vehicleCalendarMonth + 1, dayNumber);
+                dateStr = formatVehicleDateKey(nextDate);
+                isCurrentMonth = false;
+                dayCounter++;
+            } else {
+                const thisDate = new Date(vehicleCalendarYear, vehicleCalendarMonth, dayCounter);
+                dayNumber = dayCounter;
+                dateStr = formatVehicleDateKey(thisDate);
+                dayCounter++;
+                hasReservation = Array.isArray(vehicleReservationsByDate[dateStr]) && vehicleReservationsByDate[dateStr].length > 0;
+            }
+
+            calendarHTML += `
+                <div class="calendar-day ${isCurrentMonth ? '' : 'other-month'} ${hasReservation ? 'has-reservation' : ''}" onclick="${isCurrentMonth ? `selectVehicleDate('${dateStr}')` : ''}">
+                    <div>${dayNumber}</div>
+                    ${hasReservation ? '<div class="day-dot"></div>' : ''}
+                </div>
+            `;
+        }
+
+        document.getElementById('vehicleCalendarMonth').textContent = formatVehicleMonthTitle(vehicleCalendarYear, vehicleCalendarMonth);
+        document.getElementById('vehicleCalendarDays').innerHTML = calendarHTML;
+
+        if (!selectedVehicleDate) {
+            const todayKey = formatVehicleDateKey(today);
+            selectVehicleDate(todayKey);
+        }
+    }
+
+    function selectVehicleDate(dateKey) {
+        selectedVehicleDate = dateKey;
+        const details = document.getElementById('vehicleCalendarDetails');
+        fetch(`/availability/vehicles/day?campus_id=all&date=${dateKey}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success || !data.reservations || data.reservations.length === 0) {
+                    details.innerHTML = '<h4>No pickup vehicle reservations</h4><div class="detail-item">This day is open for pickup vehicle requests.</div>';
+                    return;
+                }
+
+                const html = data.reservations.map(item => `
+                    <div class="detail-item"><strong>${item.time}</strong> — ${item.code} (${item.purpose})</div>
+                `).join('');
+                details.innerHTML = `<h4>${new Date(dateKey).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h4>${html}`;
+            })
+            .catch(error => {
+                console.error('Failed to load vehicle day details:', error);
+            });
+    }
+
+    function changeVehicleMonth(direction) {
+        vehicleCalendarMonth += direction;
+        if (vehicleCalendarMonth < 0) {
+            vehicleCalendarMonth = 11;
+            vehicleCalendarYear -= 1;
+        } else if (vehicleCalendarMonth > 11) {
+            vehicleCalendarMonth = 0;
+            vehicleCalendarYear += 1;
+        }
+        selectedVehicleDate = null;
+        loadVehicleCalendar();
+    }
+
+    function goToVehicleToday() {
+        vehicleCalendarDate = new Date();
+        vehicleCalendarMonth = vehicleCalendarDate.getMonth();
+        vehicleCalendarYear = vehicleCalendarDate.getFullYear();
+        selectedVehicleDate = null;
+        loadVehicleCalendar();
+    }
+
+    loadVehicleCalendar();
 </script>
 @endsection

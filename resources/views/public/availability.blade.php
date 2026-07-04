@@ -254,6 +254,15 @@
         gap: 10px;
     }
 
+    .vehicle-card {
+        background: #f7fbff;
+        border-radius: 16px;
+        border: 1px solid #d8e7f2;
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+    }
+
     .event-card strong {
         color: #1a7a3e;
         font-size: 15px;
@@ -439,10 +448,11 @@
         <div class="availability-panel">
             <div class="selected-info" id="selectedInfo">
                 <h2>Select a date to view scheduled events</h2>
-                <p>Choose a campus and tap any highlighted day to see the event schedule for that day.</p>
+                <p>Choose a campus and tap any highlighted day to see both event and pickup-vehicle availability for that day.</p>
             </div>
 
             <div id="eventDetails"></div>
+            <div id="vehicleDetails"></div>
 
             <div class="cta-box">
                 <h3>Want to make a reservation?</h3>
@@ -464,6 +474,7 @@
     let selectedCampus = 'all';
     let selectedDate = null;
     let eventsData = {};
+    let vehicleData = {};
 
     function formatMonthTitle(year, month) {
         const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -480,14 +491,21 @@
     }
 
     function loadEvents() {
-        const url = `/availability/events?campus_id=${selectedCampus}&month=${currentMonth + 1}&year=${currentYear}`;
-        return fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    eventsData = data.events;
-                    renderCalendar();
+        const eventsUrl = `/availability/events?campus_id=${selectedCampus}&month=${currentMonth + 1}&year=${currentYear}`;
+        const vehicleUrl = `/availability/vehicles?campus_id=${selectedCampus}&month=${currentMonth + 1}&year=${currentYear}`;
+
+        return Promise.all([
+            fetch(eventsUrl).then(response => response.json()),
+            fetch(vehicleUrl).then(response => response.json())
+        ])
+            .then(([eventData, vehicleResponse]) => {
+                if (eventData.success) {
+                    eventsData = eventData.events;
                 }
+                if (vehicleResponse.success) {
+                    vehicleData = vehicleResponse.dates;
+                }
+                renderCalendar();
             })
             .catch(error => console.error('Failed to load availability:', error));
     }
@@ -511,6 +529,7 @@
             let isToday = false;
             let isSelected = false;
             let hasEvent = false;
+            let hasVehicle = false;
 
             if (i < startingDay) {
                 dayNumber = prevMonthLastDay - (startingDay - i) + 1;
@@ -536,13 +555,14 @@
                     isSelected = true;
                 }
                 hasEvent = Array.isArray(eventsData[dateStr]) && eventsData[dateStr].length > 0;
+                hasVehicle = Array.isArray(vehicleData[dateStr]) && vehicleData[dateStr].length > 0;
             }
 
             calendarHTML += `
-                <div class="calendar-day ${isCurrentMonth ? '' : 'other-month'} ${isSelected ? 'selected' : ''} ${hasEvent ? 'has-event' : ''}"
+                <div class="calendar-day ${isCurrentMonth ? '' : 'other-month'} ${isSelected ? 'selected' : ''} ${hasEvent || hasVehicle ? 'has-event' : ''}"
                      onclick="${isCurrentMonth ? `selectDate('${dateStr}')` : ''}">
                     <div class="day-number">${dayNumber}</div>
-                    ${hasEvent ? '<div class="event-dot"></div>' : ''}
+                    ${hasEvent || hasVehicle ? '<div class="event-dot"></div>' : ''}
                 </div>
             `;
         }
@@ -566,43 +586,69 @@
         const infoTitle = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         document.getElementById('selectedInfo').innerHTML = `<h2>${infoTitle}</h2><p>Review scheduled events on this date or use the reservation buttons below to log in or create an account.</p>`;
 
-        fetch(`/availability/day?campus_id=${selectedCampus}&date=${dateKey}`)
-            .then(response => response.json())
-            .then(data => {
-                renderDayEvents(data.events, dateKey);
+        Promise.all([
+            fetch(`/availability/day?campus_id=${selectedCampus}&date=${dateKey}`).then(response => response.json()),
+            fetch(`/availability/vehicles/day?campus_id=${selectedCampus}&date=${dateKey}`).then(response => response.json())
+        ])
+            .then(([eventData, vehicleDataResponse]) => {
+                renderDayEvents(eventData.events, vehicleDataResponse.reservations, dateKey);
             })
             .catch(error => {
-                console.error('Error loading day events:', error);
+                console.error('Error loading day availability:', error);
             });
     }
 
-    function renderDayEvents(events, dateKey) {
-        const container = document.getElementById('eventDetails');
+    function renderDayEvents(events, vehicles, dateKey) {
+        const eventContainer = document.getElementById('eventDetails');
+        const vehicleContainer = document.getElementById('vehicleDetails');
 
         if (!events || events.length === 0) {
-            container.innerHTML = `
+            eventContainer.innerHTML = `
                 <div class="no-events-box">
                     <strong>No scheduled events on this date.</strong>
                     <p>This day is currently available for reservation.</p>
                 </div>
             `;
-            return;
+        } else {
+            const eventsHTML = events.map(event => `
+                <div class="event-card">
+                    <strong>${event.title}</strong>
+                    <div class="event-meta">
+                        <div><strong>Time:</strong> ${event.time}</div>
+                        <div><strong>Venue:</strong> ${event.venue}</div>
+                        <div><strong>Campus:</strong> ${event.campus}</div>
+                        <div><strong>Requested by:</strong> ${event.requestor}</div>
+                        ${event.is_multi_date ? `<div><strong>Multi-date event:</strong> ${event.multiple_dates.join(', ')}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            eventContainer.innerHTML = eventsHTML;
         }
 
-        const eventsHTML = events.map(event => `
-            <div class="event-card">
-                <strong>${event.title}</strong>
-                <div class="event-meta">
-                    <div><strong>Time:</strong> ${event.time}</div>
-                    <div><strong>Venue:</strong> ${event.venue}</div>
-                    <div><strong>Campus:</strong> ${event.campus}</div>
-                    <div><strong>Requested by:</strong> ${event.requestor}</div>
-                    ${event.is_multi_date ? `<div><strong>Multi-date event:</strong> ${event.multiple_dates.join(', ')}</div>` : ''}
+        if (!vehicles || vehicles.length === 0) {
+            vehicleContainer.innerHTML = `
+                <div class="no-events-box" style="margin-top: 12px;">
+                    <strong>No pickup vehicle reservations on this date.</strong>
+                    <p>This day is currently available for pickup vehicle requests.</p>
                 </div>
-            </div>
-        `).join('');
+            `;
+        } else {
+            const vehiclesHTML = vehicles.map(vehicle => `
+                <div class="vehicle-card" style="margin-top: 12px;">
+                    <strong>🚐 ${vehicle.code}</strong>
+                    <div class="event-meta">
+                        <div><strong>Time:</strong> ${vehicle.time}</div>
+                        <div><strong>Purpose:</strong> ${vehicle.purpose}</div>
+                        <div><strong>From:</strong> ${vehicle.origin_campus}</div>
+                        <div><strong>Destination:</strong> ${vehicle.destination}</div>
+                        <div><strong>Requested by:</strong> ${vehicle.requestor}</div>
+                    </div>
+                </div>
+            `).join('');
 
-        container.innerHTML = eventsHTML;
+            vehicleContainer.innerHTML = vehiclesHTML;
+        }
     }
 
     function changeMonth(direction) {

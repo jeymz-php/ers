@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use App\Models\Campus;
+use App\Models\VehicleReservation;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -139,6 +140,105 @@ class AvailabilityController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
                 'events' => [],
+            ], 500);
+        }
+    }
+
+    public function getVehicleAvailability(Request $request)
+    {
+        try {
+            $campusId = $request->campus_id;
+            $month = (int) $request->month;
+            $year = (int) $request->year;
+
+            $query = VehicleReservation::with(['originCampus', 'destinationCampus', 'user'])
+                ->where('status', 'approved');
+
+            if ($campusId && $campusId !== 'all') {
+                $query->where('origin_campus_id', $campusId);
+            }
+
+            $reservations = $query->orderBy('trip_date')->get();
+            $dates = [];
+
+            foreach ($reservations as $reservation) {
+                $dateKey = Carbon::parse($reservation->trip_date)->format('Y-m-d');
+
+                if ($month && $year) {
+                    $dateObj = Carbon::parse($reservation->trip_date);
+                    if ($dateObj->month !== $month || $dateObj->year !== $year) {
+                        continue;
+                    }
+                }
+
+                if (!isset($dates[$dateKey])) {
+                    $dates[$dateKey] = [];
+                }
+
+                $dates[$dateKey][] = [
+                    'id' => $reservation->id,
+                    'code' => $reservation->reservation_code,
+                    'purpose' => $reservation->purpose_label,
+                    'time' => Carbon::parse($reservation->pickup_time)->format('g:i A'),
+                    'origin_campus' => $reservation->originCampus?->name ?? 'Unknown Campus',
+                    'destination' => $reservation->destination_label,
+                    'requestor' => $reservation->user?->name ?? 'Guest',
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'dates' => $dates,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Public Vehicle Availability Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'dates' => [],
+            ], 500);
+        }
+    }
+
+    public function getVehicleDayAvailability(Request $request)
+    {
+        try {
+            $date = $request->date;
+            $campusId = $request->campus_id;
+
+            $query = VehicleReservation::with(['originCampus', 'destinationCampus', 'user'])
+                ->where('status', 'approved');
+
+            if ($campusId && $campusId !== 'all') {
+                $query->where('origin_campus_id', $campusId);
+            }
+
+            $reservations = $query->whereDate('trip_date', $date)->orderBy('pickup_time')->get();
+            $items = [];
+
+            foreach ($reservations as $reservation) {
+                $items[] = [
+                    'id' => $reservation->id,
+                    'code' => $reservation->reservation_code,
+                    'purpose' => $reservation->purpose_label,
+                    'time' => Carbon::parse($reservation->pickup_time)->format('g:i A'),
+                    'origin_campus' => $reservation->originCampus?->name ?? 'Unknown Campus',
+                    'destination' => $reservation->destination_label,
+                    'requestor' => $reservation->user?->name ?? 'Guest',
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'reservations' => $items,
+                'date' => Carbon::parse($date)->format('F d, Y'),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Public Vehicle Day Availability Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'reservations' => [],
             ], 500);
         }
     }
