@@ -212,12 +212,20 @@
 
             <div class="form-group">
                 <label>From Campus (Origin)</label>
-                <select name="origin_campus_id" required>
+                <select name="origin_campus_id" id="originCampusSelect" required onchange="loadVehiclesForCampus(this.value)">
                     <option value="">Select campus...</option>
                     @foreach($campuses as $campus)
                         <option value="{{ $campus->id }}" {{ old('origin_campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div class="form-group" id="vehicleSelectGroup" style="display: none;">
+                <label>Pickup Vehicle</label>
+                <select name="vehicle_id" id="vehicleSelect">
+                    <option value="">Select a vehicle...</option>
+                </select>
+                <small style="display:block; margin-top:4px; color:#6e7f72; font-size:11px;" id="vehicleHint"></small>
             </div>
 
             <div class="form-group">
@@ -329,6 +337,43 @@
     purposeSelect.addEventListener('change', toggleOtherPurpose);
     destTypeCampus.addEventListener('change', toggleDestinationFields);
     destTypeOutside.addEventListener('change', toggleDestinationFields);
+
+    const oldAdminVehicleId = @json(old('vehicle_id', ''));
+
+    function loadVehiclesForCampus(campusId) {
+        const group = document.getElementById('vehicleSelectGroup');
+        const select = document.getElementById('vehicleSelect');
+        const hint = document.getElementById('vehicleHint');
+
+        if (!campusId) {
+            group.style.display = 'none';
+            select.innerHTML = '<option value="">Select a vehicle...</option>';
+            return;
+        }
+
+        group.style.display = 'block';
+        select.innerHTML = '<option value="">Loading vehicles...</option>';
+        hint.textContent = '';
+
+        fetch(`/admin/vehicles/by-campus/${campusId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.vehicles.length > 0) {
+                    select.innerHTML = '<option value="">Select a vehicle...</option>' +
+                        data.vehicles.map(v => `<option value="${v.id}" ${String(v.id) === String(oldAdminVehicleId) ? 'selected' : ''}>${v.name}${v.plate_number ? ' (' + v.plate_number + ')' : ''}</option>`).join('');
+                } else {
+                    select.innerHTML = '<option value="">No vehicles available for this campus yet</option>';
+                    hint.textContent = 'No vehicles registered for this campus yet. Use "Add Vehicle" on the Vehicle Reservations page to add one.';
+                }
+            })
+            .catch(() => {
+                select.innerHTML = '<option value="">Unable to load vehicles</option>';
+            });
+    }
+
+    if (document.getElementById('originCampusSelect').value) {
+        loadVehiclesForCampus(document.getElementById('originCampusSelect').value);
+    }
 
     let selectedAdminTripDates = @json(old('trip_dates', [old('trip_date')]));
     selectedAdminTripDates = (Array.isArray(selectedAdminTripDates) ? selectedAdminTripDates : [selectedAdminTripDates]).filter(Boolean);

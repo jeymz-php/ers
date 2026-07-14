@@ -26,6 +26,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\User\VehicleReservationController;
 use App\Http\Controllers\Admin\VehicleReservationManagementController;
+use App\Http\Controllers\Admin\VehicleManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +81,8 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         // Pickup Vehicle Reservations
         Route::get('/vehicle-reservations', [VehicleReservationController::class, 'index'])->name('user.vehicle-reservations');
         Route::post('/vehicle-reservations', [VehicleReservationController::class, 'store'])->name('user.vehicle-reservations.store');
+
+        Route::get('/api/campuses/{campusId}/vehicles', [VehicleReservationController::class, 'getVehiclesByCampus'])->name('user.vehicles.by-campus');
         
         // Summary
         Route::get('/summary', [SummaryController::class, 'index'])->name('user.summary');
@@ -176,6 +179,14 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::post('/vehicle-reservations/{id}/approve', [VehicleReservationManagementController::class, 'approve'])->name('vehicle-reservations.approve');
         Route::post('/vehicle-reservations/{id}/reject', [VehicleReservationManagementController::class, 'reject'])->name('vehicle-reservations.reject');
         Route::delete('/vehicle-reservations/{id}', [VehicleReservationManagementController::class, 'destroy'])->name('vehicle-reservations.destroy');
+
+        // Vehicle Fleet Management (Add Vehicle)
+        Route::get('/vehicles', [VehicleManagementController::class, 'index'])->name('vehicles.index');
+        Route::post('/vehicles', [VehicleManagementController::class, 'store'])->name('vehicles.store');
+        Route::put('/vehicles/{id}', [VehicleManagementController::class, 'update'])->name('vehicles.update');
+        Route::post('/vehicles/{id}/toggle-status', [VehicleManagementController::class, 'toggleStatus'])->name('vehicles.toggle-status');
+        Route::delete('/vehicles/{id}', [VehicleManagementController::class, 'destroy'])->name('vehicles.destroy');
+        Route::get('/vehicles/by-campus/{campusId}', [VehicleManagementController::class, 'getVehiclesByCampus'])->name('vehicles.by-campus');
         
         // Campus Management
         Route::get('/campuses', [CampusManagementController::class, 'index'])->name('campuses.index');

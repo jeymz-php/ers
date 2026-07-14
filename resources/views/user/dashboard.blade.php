@@ -765,11 +765,14 @@
             if (dayEvents.length > 0) {
                 eventBadgesHtml = '<div class="day-events">';
                 dayEvents.slice(0, 2).forEach(event => {
+                    const isVehicle = event.type === 'vehicle';
                     const isMultiDate = event.is_multi_date;
                     const multiDateClass = isMultiDate ? 'multi-date' : '';
+                    const badgeStyle = isVehicle ? 'style="border-left: 3px solid #6c5ce7;"' : '';
+                    const icon = isVehicle ? '' : '📍 ';
                     eventBadgesHtml += `
-                        <div class="event-badge ${multiDateClass}" title="${event.title} - ${event.time} - ${event.venue}${isMultiDate ? ' (Multiple Dates)' : ''}">
-                            📍 ${event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title}
+                        <div class="event-badge ${multiDateClass}" ${badgeStyle} title="${event.title} - ${event.time} - ${event.venue}${isMultiDate ? ' (Multiple Dates)' : ''}">
+                            ${icon}${event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title}
                             ${isMultiDate ? '<span style="background: #ff9800; padding: 1px 4px; border-radius: 8px; font-size: 8px; margin-left: 4px;">📅📅</span>' : ''}
                         </div>
                     `;
@@ -816,11 +819,14 @@
             if (dayEvents.length > 0) {
                 eventBadgesHtml = '<div class="day-events">';
                 dayEvents.slice(0, 2).forEach(event => {
+                    const isVehicle = event.type === 'vehicle';
                     const isMultiDate = event.is_multi_date;
                     const multiDateClass = isMultiDate ? 'multi-date' : '';
+                    const badgeStyle = isVehicle ? 'style="border-left: 3px solid #6c5ce7;"' : '';
+                    const icon = isVehicle ? '' : '📍 ';
                     eventBadgesHtml += `
-                        <div class="event-badge ${multiDateClass}" title="${event.title} - ${event.time} - ${event.venue}${isMultiDate ? ' (Multiple Dates)' : ''}">
-                            📍 ${event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title}
+                        <div class="event-badge ${multiDateClass}" ${badgeStyle} title="${event.title} - ${event.time} - ${event.venue}${isMultiDate ? ' (Multiple Dates)' : ''}">
+                            ${icon}${event.title.length > 12 ? event.title.substring(0, 12) + '...' : event.title}
                             ${isMultiDate ? '<span style="background: #ff9800; padding: 1px 4px; border-radius: 8px; font-size: 8px; margin-left: 4px;">📅📅</span>' : ''}
                         </div>
                     `;
@@ -878,16 +884,19 @@
         
         let eventsHTML = '';
         events.forEach(event => {
+            const isVehicle = event.type === 'vehicle';
             const isMultiDate = event.is_multi_date;
             const multiDateBadge = isMultiDate ? '<span class="multi-date-indicator">Multiple Dates</span>' : '';
+            const typeBadge = isVehicle ? '<span class="multi-date-indicator" style="background:#6c5ce7;">🚐 VEHICLE</span>' : '';
             eventsHTML += `
-                <div class="event-item">
+                <div class="event-item" ${isVehicle ? 'style="border-left-color:#6c5ce7;"' : ''}>
                     <div class="event-time">
                         <div class="time">${event.time}</div>
                     </div>
                     <div class="event-details">
-                        <div class="event-name">${event.title} ${multiDateBadge}</div>
+                        <div class="event-name">${event.title} ${typeBadge} ${multiDateBadge}</div>
                         <div class="event-venue">📍 ${event.venue}</div>
+                        ${isVehicle && event.vehicle ? `<div class="event-venue">🚗 ${event.vehicle}</div>` : ''}
                         ${isMultiDate && event.multiple_dates ? `
                             <div style="font-size: 10px; color: #ff9800; margin-top: 4px;">
                                 📅 Also on: ${event.multiple_dates.filter(d => d !== dateStr).map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })).join(', ')}
@@ -909,17 +918,20 @@
         
         let eventsHTML = '';
         events.forEach(event => {
+            const isVehicle = event.type === 'vehicle';
             const isMultiDate = event.is_multi_date;
             const multiDateBadge = isMultiDate ? '<span class="multi-date-indicator">Multiple Dates</span>' : '';
+            const typeBadge = isVehicle ? '<span class="multi-date-indicator" style="background:#6c5ce7;">🚐 VEHICLE</span>' : '';
             eventsHTML += `
-                <div class="event-item">
+                <div class="event-item" ${isVehicle ? 'style="border-left-color:#6c5ce7;"' : ''}>
                     <div class="event-time">
                         <div class="time">${event.time}</div>
                         <div class="date">${event.date}</div>
                     </div>
                     <div class="event-details">
-                        <div class="event-name">${event.title} ${multiDateBadge}</div>
+                        <div class="event-name">${event.title} ${typeBadge} ${multiDateBadge}</div>
                         <div class="event-venue">📍 ${event.venue}</div>
+                        ${isVehicle && event.vehicle ? `<div class="event-venue">🚗 ${event.vehicle}</div>` : ''}
                     </div>
                 </div>
             `;

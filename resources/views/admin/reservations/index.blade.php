@@ -103,6 +103,39 @@
     .btn-delete {
         color: #dc2626;
     }
+
+    /* Icon action buttons */
+    .action-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        background: #f0faf3;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .btn-icon-view { color: #2db84f; }
+    .btn-icon-report { color: #1a7a3e; background: #e8f5ea; }
+    .btn-icon-edit { color: #f5a524; background: #fff7e6; }
+    .btn-icon-delete { color: #dc2626; background: #fef2f2; }
     
     .reservations-table {
         background: white;
@@ -299,14 +332,16 @@
                     </span>
                 </td>
                 <td>
-                    <a href="{{ route('admin.reservations.show', $res->id) }}" class="btn-action btn-view" title="View Details">View Details</a>
-                    <a href="{{ route('report.single', $res->id) }}" class="btn-action" style="color: #2db84f;" title="Generate Report" target="_blank">Generate Report</a>
-                    <a href="{{ route('admin.reservations.edit', $res->id) }}" class="btn-action btn-edit" title="Edit Reservation">Edit Reservation</a>
-                    <form method="POST" action="{{ route('admin.reservations.destroy', $res->id) }}" style="display: inline;" onsubmit="return confirm('Delete this reservation?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn-action btn-delete" title="Delete">Delete Reservation</button>
-                    </form>
+                    <div class="action-icons">
+                        <a href="{{ route('admin.reservations.show', $res->id) }}" class="btn-icon btn-icon-view" title="View Details">👁️</a>
+                        <a href="{{ route('report.single', $res->id) }}" class="btn-icon btn-icon-report" title="Generate Report" target="_blank">📄</a>
+                        <a href="{{ route('admin.reservations.edit', $res->id) }}" class="btn-icon btn-icon-edit" title="Edit Reservation">✏️</a>
+                        <form method="POST" action="{{ route('admin.reservations.destroy', $res->id) }}" style="display: inline;" onsubmit="return confirm('Delete this reservation?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-icon btn-icon-delete" title="Delete Reservation">🗑️</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             @empty

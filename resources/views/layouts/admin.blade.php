@@ -331,6 +331,125 @@
             50% { transform: scale(1.2); opacity: 0.8; }
         }
 
+        /* ========================================
+           QR CODE BUTTON & MODAL
+        ======================================== */
+        .qr-code-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            background: #f0faf3;
+            color: #1a7a3e;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .qr-code-btn:hover {
+            background: #1a7a3e;
+            color: white;
+        }
+
+        .qr-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 61, 31, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        .qr-modal-overlay.active {
+            display: flex;
+        }
+
+        .qr-modal {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 880px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 28px;
+        }
+
+        .qr-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e8eee9;
+        }
+
+        .qr-modal-header h3 {
+            color: #1a7a3e;
+            font-size: 19px;
+        }
+
+        .qr-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6e7f72;
+        }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .qr-card {
+            background: #f7faf8;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .qr-card-title {
+            font-weight: 700;
+            color: #1a7a3e;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .qr-canvas-wrap {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 176px;
+        }
+
+        .qr-card-url {
+            font-size: 10px;
+            color: #6e7f72;
+            word-break: break-all;
+            margin: 10px 0 14px;
+        }
+
+        .qr-download-btn {
+            background: linear-gradient(135deg, #1a7a3e, #2db84f);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
         .notification-dropdown {
             position: absolute;
             top: 60px;
@@ -587,6 +706,12 @@
             .notification-bell span {
                 font-size: 18px;
             }
+            .qr-code-btn-label {
+                display: none;
+            }
+            .qr-code-btn {
+                padding: 8px;
+            }
             .user-avatar {
                 width: 35px;
                 height: 35px;
@@ -702,6 +827,12 @@
             <div class="topbar">
                 <div class="page-title">@yield('page-title', 'Dashboard')</div>
                 <div class="user-menu">
+                    <!-- QR Code Generator -->
+                    <div class="qr-code-btn" onclick="openQrModal()" title="Generate QR Codes">
+                        <span style="font-size: 20px;">📱</span>
+                        <span class="qr-code-btn-label">QR Code</span>
+                    </div>
+
                     <!-- Notification Bell -->
                     <div class="notification-bell" onclick="toggleNotificationDropdown()">
                         <span style="font-size: 22px;">🔔</span>
@@ -729,6 +860,36 @@
                 </div>
                 <div class="notification-footer">
                     <a href="{{ route('admin.reservations.index') }}">View all reservations</a>
+                </div>
+            </div>
+
+            <!-- QR Code Modal -->
+            <div id="qrModalOverlay" class="qr-modal-overlay">
+                <div class="qr-modal">
+                    <div class="qr-modal-header">
+                        <h3>📱 UCC-ERS QR Codes</h3>
+                        <button type="button" class="qr-modal-close" onclick="closeQrModal()">&times;</button>
+                    </div>
+                    <div class="qr-grid">
+                        <div class="qr-card">
+                            <div class="qr-card-title">📍 Reservations</div>
+                            <div class="qr-canvas-wrap"><div id="qrCanvasReservations"></div></div>
+                            <div class="qr-card-url">https://ers.ucc-caloocan.com/reservations</div>
+                            <button type="button" class="qr-download-btn" onclick="downloadQr('qrCanvasReservations', 'ucc-ers-reservations-qr.png')">⬇ Download</button>
+                        </div>
+                        <div class="qr-card">
+                            <div class="qr-card-title">🚐 Vehicle Reservations</div>
+                            <div class="qr-canvas-wrap"><div id="qrCanvasVehicleReservations"></div></div>
+                            <div class="qr-card-url">https://ers.ucc-caloocan.com/vehicle-reservations</div>
+                            <button type="button" class="qr-download-btn" onclick="downloadQr('qrCanvasVehicleReservations', 'ucc-ers-vehicle-reservations-qr.png')">⬇ Download</button>
+                        </div>
+                        <div class="qr-card">
+                            <div class="qr-card-title">📅 Availability Calendar</div>
+                            <div class="qr-canvas-wrap"><div id="qrCanvasAvailability"></div></div>
+                            <div class="qr-card-url">https://ers.ucc-caloocan.com/availability</div>
+                            <button type="button" class="qr-download-btn" onclick="downloadQr('qrCanvasAvailability', 'ucc-ers-availability-qr.png')">⬇ Download</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -992,6 +1153,73 @@
         // Start real-time notifications
         initRealTimeNotifications();
     </script>
+
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        let qrCodesGenerated = false;
+
+        const qrTargets = [
+            { url: 'https://ers.ucc-caloocan.com/reservations', el: 'qrCanvasReservations' },
+            { url: 'https://ers.ucc-caloocan.com/vehicle-reservations', el: 'qrCanvasVehicleReservations' },
+            { url: 'https://ers.ucc-caloocan.com/availability', el: 'qrCanvasAvailability' },
+        ];
+
+        function openQrModal() {
+            document.getElementById('qrModalOverlay').classList.add('active');
+
+            if (!qrCodesGenerated) {
+                generateQrCodes();
+                qrCodesGenerated = true;
+            }
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModalOverlay').classList.remove('active');
+        }
+
+        function generateQrCodes() {
+            if (typeof QRCode === 'undefined') {
+                qrTargets.forEach(t => {
+                    document.getElementById(t.el).innerHTML = '<div style="font-size:11px;color:#dc2626;padding:20px;">QR library failed to load. Check your internet connection.</div>';
+                });
+                return;
+            }
+
+            qrTargets.forEach(t => {
+                new QRCode(document.getElementById(t.el), {
+                    text: t.url,
+                    width: 160,
+                    height: 160,
+                    colorDark: '#1a3d29',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H,
+                });
+            });
+        }
+
+        function downloadQr(containerId, filename) {
+            const container = document.getElementById(containerId);
+            const canvas = container.querySelector('canvas');
+
+            if (!canvas) {
+                alert('QR code is not ready yet. Please try again in a moment.');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        document.getElementById('qrModalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeQrModal();
+            }
+        });
+    </script>
+
     @stack('scripts')
 </body>
 </html>

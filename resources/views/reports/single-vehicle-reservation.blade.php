@@ -301,6 +301,10 @@
                         <div class="info-value">{{ $reservation->originCampus->name ?? 'N/A' }}</div>
                     </div>
                     <div class="info-row">
+                        <div class="info-label">Assigned Vehicle:</div>
+                        <div class="info-value">{{ $reservation->vehicle_label }}</div>
+                    </div>
+                    <div class="info-row">
                         <div class="info-label">Destination Type:</div>
                         <div class="info-value">{{ $reservation->destination_type === 'campus' ? 'Within UCC Campus' : 'Outside Campus' }}</div>
                     </div>

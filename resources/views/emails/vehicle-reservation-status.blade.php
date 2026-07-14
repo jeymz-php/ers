@@ -179,6 +179,10 @@
                     <span>{{ $reservation->originCampus->name ?? 'N/A' }}</span>
                 </div>
                 <div class="detail-row">
+                    <span class="detail-label">Assigned Vehicle:</span>
+                    <span>{{ $reservation->vehicle_label }}</span>
+                </div>
+                <div class="detail-row">
                     <span class="detail-label">Purpose:</span>
                     <span>{{ $reservation->purpose_label }}</span>
                 </div>

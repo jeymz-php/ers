@@ -523,13 +523,21 @@
                             </div>
                             <div class="form-group">
                                 <label>From Campus (Origin)</label>
-                                <select name="origin_campus_id" required>
+                                <select name="origin_campus_id" id="originCampusSelect" required onchange="loadVehiclesForCampus(this.value)">
                                     <option value="">Select campus...</option>
                                     @foreach($campuses as $campus)
                                         <option value="{{ $campus->id }}" {{ old('origin_campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                        </div>
+
+                        <div class="form-group" id="vehicleSelectGroup" style="display: none;">
+                            <label>Pickup Vehicle</label>
+                            <select name="vehicle_id" id="vehicleSelect">
+                                <option value="">Select a vehicle...</option>
+                            </select>
+                            <small class="form-hint" id="vehicleHint"></small>
                         </div>
 
                         <div class="form-group">
@@ -652,6 +660,10 @@
                                 <span>{{ $res->originCampus->name ?? 'N/A' }}</span>
                             </div>
                             <div class="request-detail-row">
+                                <span>Vehicle:</span>
+                                <span>{{ $res->vehicle_label }}</span>
+                            </div>
+                            <div class="request-detail-row">
                                 <span>To:</span>
                                 <span>{{ $res->destination_label }}</span>
                             </div>
@@ -727,6 +739,44 @@
 
     toggleOtherPurpose();
     toggleDestinationFields();
+
+    const oldVehicleId = @json(old('vehicle_id', ''));
+
+    function loadVehiclesForCampus(campusId) {
+        const group = document.getElementById('vehicleSelectGroup');
+        const select = document.getElementById('vehicleSelect');
+        const hint = document.getElementById('vehicleHint');
+
+        if (!campusId) {
+            group.style.display = 'none';
+            select.innerHTML = '<option value="">Select a vehicle...</option>';
+            return;
+        }
+
+        group.style.display = 'block';
+        select.innerHTML = '<option value="">Loading vehicles...</option>';
+        hint.textContent = '';
+
+        fetch(`/api/campuses/${campusId}/vehicles`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.vehicles.length > 0) {
+                    select.innerHTML = '<option value="">Select a vehicle...</option>' +
+                        data.vehicles.map(v => `<option value="${v.id}" ${String(v.id) === String(oldVehicleId) ? 'selected' : ''}>${v.name}${v.plate_number ? ' (' + v.plate_number + ')' : ''}</option>`).join('');
+                    hint.textContent = '';
+                } else {
+                    select.innerHTML = '<option value="">No vehicles available for this campus yet</option>';
+                    hint.textContent = 'No vehicles have been registered for this campus yet. Your request can still be submitted — the Admin will assign a vehicle upon approval.';
+                }
+            })
+            .catch(() => {
+                select.innerHTML = '<option value="">Unable to load vehicles</option>';
+            });
+    }
+
+    if (document.getElementById('originCampusSelect').value) {
+        loadVehiclesForCampus(document.getElementById('originCampusSelect').value);
+    }
 
     const initialTripDates = @json(old('trip_dates', [old('trip_date')]));
     let selectedTripDates = (Array.isArray(initialTripDates) ? initialTripDates : [initialTripDates]).filter(Boolean);

@@ -41,7 +41,7 @@ class ReportController extends Controller
 
     public function generateSingleVehicleReport($id)
     {
-        $reservation = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'approver'])
+        $reservation = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'approver', 'vehicle'])
             ->findOrFail($id);
 
         $user = Auth::user();

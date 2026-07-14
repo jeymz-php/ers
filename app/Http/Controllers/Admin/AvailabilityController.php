@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
+use App\Models\VehicleReservation;
 use App\Models\Campus;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -57,7 +58,7 @@ class AvailabilityController extends Controller
                     // Check if this event already exists on this date (avoid duplicates)
                     $exists = false;
                     foreach ($events[$dateKey] as $existing) {
-                        if ($existing['id'] === $res->id) {
+                        if ($existing['id'] === $res->id && ($existing['type'] ?? 'event') === 'event') {
                             $exists = true;
                             break;
                         }
@@ -65,6 +66,7 @@ class AvailabilityController extends Controller
                     
                     if (!$exists) {
                         $events[$dateKey][] = [
+                            'type' => 'event',
                             'id' => $res->id,
                             'title' => $res->event_name,
                             'time' => Carbon::parse($res->start_time)->format('g:i A') . ' - ' . Carbon::parse($res->end_time)->format('g:i A'),
@@ -81,6 +83,8 @@ class AvailabilityController extends Controller
                     }
                 }
             }
+
+            $this->mergeVehicleEvents($events, $request->campus_id, (int) $request->month, (int) $request->year);
             
             return response()->json([
                 'success' => true,
@@ -123,6 +127,7 @@ class AvailabilityController extends Controller
                 }
                 
                 $events[] = [
+                    'type' => 'event',
                     'id' => $res->id,
                     'title' => $res->event_name,
                     'time' => Carbon::parse($res->start_time)->format('g:i A') . ' - ' . Carbon::parse($res->end_time)->format('g:i A'),
@@ -134,6 +139,32 @@ class AvailabilityController extends Controller
                     'end_time' => $res->end_time,
                     'is_multi_date' => $isMultiDate,
                     'multiple_dates' => $multipleDates
+                ];
+            }
+
+            $vehicleQuery = VehicleReservation::with(['originCampus', 'vehicle', 'user'])
+                ->where('status', 'approved');
+
+            if ($request->campus_id && $request->campus_id != 'all') {
+                $vehicleQuery->where('origin_campus_id', $request->campus_id);
+            }
+
+            foreach ($vehicleQuery->get() as $res) {
+                if (!in_array($date, $res->trip_dates, true)) {
+                    continue;
+                }
+
+                $events[] = [
+                    'type' => 'vehicle',
+                    'id' => $res->id,
+                    'title' => '🚐 ' . $res->purpose_label,
+                    'time' => Carbon::parse($res->pickup_time)->format('g:i A'),
+                    'venue' => $res->destination_label,
+                    'campus' => $res->originCampus?->name ?? 'Unknown Campus',
+                    'requestor' => $res->user?->name ?? 'Unknown Requestor',
+                    'vehicle' => $res->vehicle_label,
+                    'is_multi_date' => $res->is_multi_date,
+                    'multiple_dates' => $res->trip_dates,
                 ];
             }
             
@@ -173,6 +204,7 @@ class AvailabilityController extends Controller
                 $isMultiDate = count($multipleDates) > 1;
                 
                 $events[] = [
+                    'type' => 'event',
                     'id' => $res->id,
                     'title' => $res->event_name,
                     'date' => Carbon::parse($res->event_date)->format('M d, Y'),
@@ -186,6 +218,38 @@ class AvailabilityController extends Controller
                     'multiple_dates' => $multipleDates
                 ];
             }
+
+            $vehicleQuery = VehicleReservation::with(['originCampus', 'vehicle', 'user'])
+                ->where('status', 'approved')
+                ->where('trip_date', '>=', Carbon::today());
+
+            if ($request->campus_id && $request->campus_id != 'all') {
+                $vehicleQuery->where('origin_campus_id', $request->campus_id);
+            }
+
+            foreach ($vehicleQuery->orderBy('trip_date')->limit(10)->get() as $res) {
+                $events[] = [
+                    'type' => 'vehicle',
+                    'id' => $res->id,
+                    'title' => '🚐 ' . $res->purpose_label,
+                    'date' => $res->trip_date->format('M d, Y'),
+                    'day' => $res->trip_date->format('l'),
+                    'event_date' => $res->trip_date->format('Y-m-d'),
+                    'time' => Carbon::parse($res->pickup_time)->format('g:i A'),
+                    'venue' => $res->destination_label,
+                    'campus' => $res->originCampus?->name ?? 'Unknown Campus',
+                    'requestor' => $res->user?->name ?? 'Unknown Requestor',
+                    'vehicle' => $res->vehicle_label,
+                    'is_multi_date' => $res->is_multi_date,
+                    'multiple_dates' => $res->trip_dates,
+                ];
+            }
+
+            usort($events, function ($a, $b) {
+                return strcmp($a['event_date'], $b['event_date']);
+            });
+
+            $events = array_slice($events, 0, 10);
             
             return response()->json([
                 'success' => true,
@@ -199,6 +263,53 @@ class AvailabilityController extends Controller
                 'message' => $e->getMessage(),
                 'events' => []
             ], 500);
+        }
+    }
+
+    /**
+     * Merge approved pickup vehicle reservations into the same date-keyed
+     * events array used for the event-reservation calendar, tagged with
+     * type => 'vehicle' so the frontend can render them distinctly.
+     */
+    private function mergeVehicleEvents(array &$events, $campusId, int $month, int $year): void
+    {
+        $query = VehicleReservation::with(['originCampus', 'vehicle', 'user'])
+            ->where('status', 'approved');
+
+        if ($campusId && $campusId != 'all') {
+            $query->where('origin_campus_id', $campusId);
+        }
+
+        foreach ($query->get() as $res) {
+            foreach ($res->trip_dates as $singleDate) {
+                if ($month && $year) {
+                    $dateObj = Carbon::parse($singleDate);
+                    if ($dateObj->month != $month || $dateObj->year != $year) {
+                        continue;
+                    }
+                }
+
+                $dateKey = Carbon::parse($singleDate)->format('Y-m-d');
+
+                if (!isset($events[$dateKey])) {
+                    $events[$dateKey] = [];
+                }
+
+                $events[$dateKey][] = [
+                    'type' => 'vehicle',
+                    'id' => $res->id,
+                    'title' => '🚐 ' . $res->purpose_label,
+                    'time' => Carbon::parse($res->pickup_time)->format('g:i A'),
+                    'venue' => $res->destination_label,
+                    'campus' => $res->originCampus?->name ?? 'Unknown Campus',
+                    'campus_id' => $res->origin_campus_id,
+                    'requestor' => $res->user?->name ?? 'Unknown Requestor',
+                    'vehicle' => $res->vehicle_label,
+                    'event_date' => $dateKey,
+                    'is_multi_date' => $res->is_multi_date,
+                    'multiple_dates' => $res->trip_dates,
+                ];
+            }
         }
     }
 

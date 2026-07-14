@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Carbon\Carbon;
 
 class VehicleReservation extends Model
@@ -14,6 +15,7 @@ class VehicleReservation extends Model
         'user_id',
         'requester_type',
         'origin_campus_id',
+        'vehicle_id',
         'purpose',
         'other_purpose',
         'destination_type',
@@ -32,10 +34,14 @@ class VehicleReservation extends Model
 
     protected $casts = [
         'trip_date' => 'date',
-        'trip_dates' => 'array',
         'attachments' => 'array',
         'approved_at' => 'datetime',
     ];
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
 
     public function user()
     {
@@ -89,6 +95,11 @@ class VehicleReservation extends Model
         }
 
         return $this->destination_location ?: 'N/A';
+    }
+
+    public function getVehicleLabelAttribute(): string
+    {
+        return $this->vehicle?->label ?? 'Not yet assigned';
     }
 
     /**
@@ -156,9 +167,48 @@ class VehicleReservation extends Model
         return array_values(array_unique($conflicts));
     }
 
+    /**
+     * trip_dates is guaranteed to ALWAYS return an array here — never null —
+     * regardless of what's actually sitting in the database (missing,
+     * malformed JSON, legacy rows created before this column existed, etc).
+     * This is what protects every count($reservation->trip_dates) call
+     * throughout the app from ever throwing a TypeError again.
+     */
+    protected function tripDates(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                $dates = [];
+
+                if (is_string($value) && $value !== '') {
+                    $decoded = json_decode($value, true);
+                    if (is_array($decoded)) {
+                        $dates = $decoded;
+                    }
+                } elseif (is_array($value)) {
+                    $dates = $value;
+                }
+
+                $dates = array_values(array_filter($dates, function ($d) {
+                    return !empty($d);
+                }));
+
+                if (empty($dates) && $this->trip_date) {
+                    $dates = [$this->trip_date->format('Y-m-d')];
+                }
+
+                return $dates;
+            },
+            set: function ($value) {
+                $dates = is_array($value) ? array_values(array_filter($value)) : [];
+                return json_encode($dates);
+            },
+        );
+    }
+
     public function getTripDatesDisplayAttribute(): string
     {
-        $dates = $this->trip_dates ?: ($this->trip_date ? [$this->trip_date->format('Y-m-d')] : []);
+        $dates = $this->trip_dates;
 
         if (empty($dates)) {
             return 'N/A';
@@ -175,6 +225,6 @@ class VehicleReservation extends Model
 
     public function getIsMultiDateAttribute(): bool
     {
-        return count($this->trip_dates ?? []) > 1;
+        return count($this->trip_dates) > 1;
     }
 }

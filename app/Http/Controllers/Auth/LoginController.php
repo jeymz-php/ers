@@ -45,7 +45,7 @@ class LoginController extends Controller
 
             $request->session()->put('show_system_update', true);
 
-            return redirect()->route('admin.dashboard');
+            return redirect()->intended(route('admin.dashboard'));
         }
 
         throw ValidationException::withMessages([
@@ -73,7 +73,7 @@ class LoginController extends Controller
             // Redirect based on user role
             if ($user->isAdmin()) {
                 $request->session()->put('show_system_update', true);
-                return redirect()->route('admin.dashboard');
+                return redirect()->intended(route('admin.dashboard'));
             }
             
             // Check account status for regular users
@@ -87,7 +87,7 @@ class LoginController extends Controller
             
             $request->session()->put('show_system_update', true);
 
-            return redirect()->route('dashboard');
+            return redirect()->intended(route('dashboard'));
         }
 
         throw ValidationException::withMessages([

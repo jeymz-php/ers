@@ -19,7 +19,7 @@ class VehicleReservationController extends Controller
     {
         $campuses = Campus::getActiveCampuses();
 
-        $myReservations = VehicleReservation::with(['originCampus', 'destinationCampus'])
+        $myReservations = VehicleReservation::with(['originCampus', 'destinationCampus', 'vehicle'])
             ->where('user_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(8);
@@ -32,6 +32,7 @@ class VehicleReservationController extends Controller
         $request->validate([
             'requester_type' => 'required|in:student,professor',
             'origin_campus_id' => 'required|exists:campuses,id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
             'purpose' => 'required|in:transporting,delivery,other',
             'other_purpose' => 'required_if:purpose,other|nullable|string|max:255',
             'destination_type' => 'required|in:campus,outside',
@@ -72,6 +73,7 @@ class VehicleReservationController extends Controller
                 'user_id' => Auth::id(),
                 'requester_type' => $request->requester_type,
                 'origin_campus_id' => $request->origin_campus_id,
+                'vehicle_id' => $request->vehicle_id,
                 'purpose' => $request->purpose,
                 'other_purpose' => $request->purpose === 'other' ? $request->other_purpose : null,
                 'destination_type' => $request->destination_type,
@@ -88,7 +90,7 @@ class VehicleReservationController extends Controller
             $this->notifyAdmins($reservation);
 
             try {
-                Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus']), 'pending'));
+                Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'vehicle']), 'pending'));
             } catch (\Exception $e) {
                 Log::error('Failed to send vehicle reservation pending email: ' . $e->getMessage());
             }
@@ -99,6 +101,16 @@ class VehicleReservationController extends Controller
             Log::error('Vehicle reservation creation error: ' . $e->getMessage());
             return back()->withInput()->with('error', 'An error occurred while submitting your request. Please try again.');
         }
+    }
+
+    public function getVehiclesByCampus($campusId)
+    {
+        $vehicles = \App\Models\Vehicle::getByCampus($campusId);
+
+        return response()->json([
+            'success' => true,
+            'vehicles' => $vehicles,
+        ]);
     }
 
     private function notifyAdmins(VehicleReservation $reservation)

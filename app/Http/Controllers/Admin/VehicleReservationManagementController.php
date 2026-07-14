@@ -17,7 +17,7 @@ class VehicleReservationManagementController extends Controller
 {
     public function index(Request $request)
     {
-        $query = VehicleReservation::with(['user', 'originCampus', 'destinationCampus']);
+        $query = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'vehicle']);
 
         if ($request->status && $request->status != 'all') {
             $query->where('status', $request->status);
@@ -53,7 +53,7 @@ class VehicleReservationManagementController extends Controller
 
     public function show($id)
     {
-        $reservation = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'approver'])->findOrFail($id);
+        $reservation = VehicleReservation::with(['user', 'originCampus', 'destinationCampus', 'approver', 'vehicle'])->findOrFail($id);
 
         return view('admin.vehicle-reservations.show', compact('reservation'));
     }
@@ -72,6 +72,7 @@ class VehicleReservationManagementController extends Controller
             'user_id' => 'required|exists:users,id',
             'requester_type' => 'required|in:student,professor,admin',
             'origin_campus_id' => 'required|exists:campuses,id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
             'purpose' => 'required|in:transporting,delivery,other',
             'other_purpose' => 'required_if:purpose,other|nullable|string|max:255',
             'destination_type' => 'required|in:campus,outside',
@@ -111,6 +112,7 @@ class VehicleReservationManagementController extends Controller
             'user_id' => $request->user_id,
             'requester_type' => $request->requester_type,
             'origin_campus_id' => $request->origin_campus_id,
+            'vehicle_id' => $request->vehicle_id,
             'purpose' => $request->purpose,
             'other_purpose' => $request->purpose === 'other' ? $request->other_purpose : null,
             'destination_type' => $request->destination_type,
@@ -127,7 +129,7 @@ class VehicleReservationManagementController extends Controller
         ]);
 
         try {
-            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'approver']), 'approved'));
+            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'approver', 'vehicle']), 'approved'));
         } catch (\Exception $e) {
             Log::error('Failed to send vehicle reservation approved email: ' . $e->getMessage());
         }
@@ -157,7 +159,7 @@ class VehicleReservationManagementController extends Controller
         $reservation->update($updateData);
 
         try {
-            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'approver']), 'approved'));
+            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'approver', 'vehicle']), 'approved'));
         } catch (\Exception $e) {
             Log::error('Failed to send vehicle reservation approved email: ' . $e->getMessage());
         }
@@ -183,7 +185,7 @@ class VehicleReservationManagementController extends Controller
         ]);
 
         try {
-            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus']), 'rejected', $request->rejection_reason));
+            Mail::to($reservation->user->email)->send(new VehicleReservationStatusMail($reservation->fresh(['user', 'originCampus', 'destinationCampus', 'vehicle']), 'rejected', $request->rejection_reason));
         } catch (\Exception $e) {
             Log::error('Failed to send vehicle reservation rejected email: ' . $e->getMessage());
         }
