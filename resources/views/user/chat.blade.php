@@ -423,10 +423,38 @@
                         sessionActive = false;
                         lockUserInput();
                     }
+
+                    // Detect a brand new (or newly re-opened) session — this is
+                    // what makes it possible for an Admin/Super Admin to start
+                    // the conversation first: the user's chat unlocks itself
+                    // automatically the moment that first message arrives.
+                    if (!sessionActive && data.session_active) {
+                        sessionActive = true;
+                        unlockUserInput();
+                    }
+
                     sessionActive = data.session_active;
                 }
             })
             .catch(error => console.error('Error:', error));
+    }
+
+    function unlockUserInput() {
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn   = document.querySelector('.chat-send');
+        const fileBtn   = document.querySelector('.file-attach-btn');
+        const inputArea = document.getElementById('chatInputArea');
+
+        if (chatInput) chatInput.disabled = false;
+        if (sendBtn)   sendBtn.disabled   = false;
+        if (fileBtn)   fileBtn.disabled   = false;
+
+        sessionEndedBannerShown = false;
+
+        // Remove any "session ended" banner and status bar left over from a
+        // previous conversation
+        const oldBanner = inputArea ? inputArea.parentNode.querySelector('.session-status, [data-ended-banner]') : null;
+        if (oldBanner) oldBanner.remove();
     }
 
     function lockUserInput() {
@@ -443,6 +471,7 @@
             sessionEndedBannerShown = true;
             if (inputArea) {
                 const banner = document.createElement('div');
+                banner.setAttribute('data-ended-banner', '1');
                 banner.style.cssText = 'text-align:center;padding:10px 15px;background:#fef2f2;color:#dc2626;font-size:12px;border-top:1px solid #fecaca;';
                 banner.innerHTML = '🔒 This session has been ended by the administrator. Type <strong>"talk to admin"</strong> in the AI Assistant to start a new conversation.';
                 inputArea.parentNode.insertBefore(banner, inputArea);

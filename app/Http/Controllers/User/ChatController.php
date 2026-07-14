@@ -170,10 +170,14 @@ class ChatController extends Controller
             return response()->json(['count' => 0]);
         }
         
+        // Count anything in this session that wasn't authored by the user
+        // themselves (admin replies, plus the null-sender system/closing
+        // messages) and hasn't been read yet.
         $count = Message::where('session_id', $session->id)
-            ->where('receiver_id', null)
             ->where('is_read', false)
-            ->where('sender_id', '!=', Auth::id())
+            ->where(function ($q) {
+                $q->whereNull('sender_id')->orWhere('sender_id', '!=', Auth::id());
+            })
             ->count();
         
         return response()->json(['count' => $count]);

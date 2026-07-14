@@ -81,7 +81,6 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         // Pickup Vehicle Reservations
         Route::get('/vehicle-reservations', [VehicleReservationController::class, 'index'])->name('user.vehicle-reservations');
         Route::post('/vehicle-reservations', [VehicleReservationController::class, 'store'])->name('user.vehicle-reservations.store');
-
         Route::get('/api/campuses/{campusId}/vehicles', [VehicleReservationController::class, 'getVehiclesByCampus'])->name('user.vehicles.by-campus');
         
         // Summary
@@ -228,6 +227,9 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         
         // Admin Chat
         Route::get('/chat', [AdminChatController::class, 'index'])->name('chat.index');
+        Route::get('/chat/sessions', [AdminChatController::class, 'sessionsJson'])->name('chat.sessions');
+        Route::get('/chat/search-users', [AdminChatController::class, 'searchUsers'])->name('chat.search-users');
+        Route::post('/chat/start', [AdminChatController::class, 'startSession'])->name('chat.start');
         Route::post('/chat/send', [AdminChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/chat/messages/{userId}', [AdminChatController::class, 'getMessages'])->name('chat.messages');
         Route::get('/chat/unread-count', [AdminChatController::class, 'getUnreadCount'])->name('chat.unread');

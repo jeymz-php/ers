@@ -28,6 +28,30 @@
             sidebar.classList.remove('open');
         }
     });
+
+    // Poll for unread chat messages so the Messages link shows a live badge
+    // (this is what makes an Admin-initiated chat noticeable to the user
+    // even if they're browsing another page)
+    function pollSidebarChatUnread() {
+        const badge = document.getElementById('sidebarChatUnreadBadge');
+        if (!badge) return;
+
+        fetch('{{ route('user.chat.unread') }}')
+            .then(res => res.json())
+            .then(data => {
+                const count = data.count || 0;
+                if (count > 0) {
+                    badge.textContent = count > 9 ? '9+' : count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(() => {});
+    }
+
+    pollSidebarChatUnread();
+    setInterval(pollSidebarChatUnread, 5000);
 </script>
 
 <!-- User Sidebar Partial -->
@@ -223,6 +247,7 @@
             <a href="{{ route('user.chat') }}" class="nav-link {{ request()->routeIs('user.chat') ? 'active' : '' }}">
                 <span class="nav-icon">💬</span>
                 <span class="nav-text">Messages</span>
+                <span id="sidebarChatUnreadBadge" style="display:none; background:#dc2626; color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:auto;"></span>
             </a>
         </div>
         
