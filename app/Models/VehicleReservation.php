@@ -28,6 +28,7 @@ class VehicleReservation extends Model
         'attachments',
         'status',
         'remarks',
+        'revision_info',
         'approved_at',
         'approved_by',
     ];
@@ -35,8 +36,14 @@ class VehicleReservation extends Model
     protected $casts = [
         'trip_date' => 'date',
         'attachments' => 'array',
+        'revision_info' => 'array',
         'approved_at' => 'datetime',
     ];
+
+    public function getIsRevisedAttribute(): bool
+    {
+        return !empty($this->revision_info['updated_fields'] ?? []);
+    }
 
     public function vehicle()
     {

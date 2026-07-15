@@ -154,6 +154,10 @@ class AvailabilityController extends Controller
             $query = VehicleReservation::with(['originCampus', 'destinationCampus', 'user'])
                 ->where('status', 'approved');
 
+            if ($request->exclude_id) {
+                $query->where('id', '!=', $request->exclude_id);
+            }
+
             $reservations = $query->orderBy('trip_date')->get();
             $dates = [];
 

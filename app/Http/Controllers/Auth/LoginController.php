@@ -45,7 +45,7 @@ class LoginController extends Controller
 
             $request->session()->put('show_system_update', true);
 
-            return redirect()->intended(route('admin.dashboard'));
+            return $this->redirectAfterLogin($request, route('admin.dashboard'));
         }
 
         throw ValidationException::withMessages([
@@ -73,7 +73,7 @@ class LoginController extends Controller
             // Redirect based on user role
             if ($user->isAdmin()) {
                 $request->session()->put('show_system_update', true);
-                return redirect()->intended(route('admin.dashboard'));
+                return $this->redirectAfterLogin($request, route('admin.dashboard'));
             }
             
             // Check account status for regular users
@@ -87,7 +87,7 @@ class LoginController extends Controller
             
             $request->session()->put('show_system_update', true);
 
-            return redirect()->intended(route('dashboard'));
+            return $this->redirectAfterLogin($request, route('dashboard'));
         }
 
         throw ValidationException::withMessages([
@@ -102,5 +102,45 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
         return redirect()->route('login')
                         ->with('status', 'You have been logged out successfully.');
+    }
+
+    /**
+     * Redirect to wherever the person was originally trying to go — but
+     * ONLY if that's a real, known full page (e.g. the pages our QR codes
+     * point to: /reservations, /vehicle-reservations, /availability).
+     * Anything else (background JSON/AJAX polling endpoints in particular,
+     * like the notification bell's unread-count check) falls back to the
+     * normal dashboard, so a stale or unexpected "intended" URL can never
+     * strand someone on a raw JSON response after logging in again.
+     */
+    private function redirectAfterLogin(Request $request, string $default)
+    {
+        $intended = $request->session()->pull('url.intended');
+
+        if ($intended && $this->isSafeIntendedUrl($intended)) {
+            return redirect()->to($intended);
+        }
+
+        return redirect()->to($default);
+    }
+
+    private function isSafeIntendedUrl(string $url): bool
+    {
+        $path = '/' . ltrim(parse_url($url, PHP_URL_PATH) ?? '', '/');
+
+        $allowedPrefixes = [
+            '/reservations',
+            '/vehicle-reservations',
+            '/availability',
+            '/dashboard',
+        ];
+
+        foreach ($allowedPrefixes as $prefix) {
+            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

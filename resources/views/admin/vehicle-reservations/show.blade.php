@@ -132,7 +132,12 @@
 <div class="detail-container">
     <!-- Reservation Details -->
     <div class="detail-card">
-        <div class="card-title">🚐 Reservation Information</div>
+        <div class="card-title">
+            🚐 Reservation Information
+            @if($reservation->is_revised)
+                <span class="status-badge" style="background:#fff3cd; color:#856404; margin-left:8px; vertical-align:middle;">✏️ REVISED</span>
+            @endif
+        </div>
 
         <div class="detail-row">
             <span class="detail-label">Reservation ID:</span>
@@ -228,6 +233,27 @@
         <p>{{ $reservation->notes ?? 'No additional details provided.' }}</p>
     </div>
 
+    <!-- Revision History -->
+    @if($reservation->is_revised)
+    <div class="detail-card" style="grid-column: 1/-1; background: #fffaf0;">
+        <div class="card-title">✏️ Revision History</div>
+        <p style="font-size: 12px; color: #856404; margin-bottom: 12px;">
+            Last revised by <strong>{{ $reservation->revision_info['last_revision_by'] ?? 'Admin' }}</strong>
+            on {{ $reservation->revision_info['last_revision_at'] ?? 'Unknown' }}
+        </p>
+        @foreach($reservation->revision_info['updated_fields'] as $field)
+            <div class="detail-row">
+                <span class="detail-label">{{ $field['label'] }}:</span>
+                <span class="detail-value">
+                    <span style="color:#dc2626; text-decoration: line-through;">{{ $field['old'] }}</span>
+                    &rarr;
+                    <span style="color:#1a7a3e; font-weight:700;">{{ $field['new'] }}</span>
+                </span>
+            </div>
+        @endforeach
+    </div>
+    @endif
+
     <!-- Attachments -->
     @if(!empty($reservation->attachments))
     <div class="detail-card" style="grid-column: 1/-1;">
@@ -245,6 +271,8 @@
 
 <!-- Action Buttons -->
 <div class="action-buttons">
+    <a href="{{ route('admin.vehicle-reservations.edit', $reservation->id) }}" class="btn-approve" style="background: #f5a524; text-decoration: none;">✏️ Edit Reservation</a>
+
     @if($reservation->status === 'approved')
         <a href="{{ route('report.vehicle.single', $reservation->id) }}" class="btn-approve" style="background: #2db84f; text-decoration: none;" target="_blank">📄 Generate Report</a>
     @endif

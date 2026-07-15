@@ -230,9 +230,36 @@
     {{-- TITLE --}}
     <div class="report-title">
         PICKUP VEHICLE RESERVATION REPORT
+        @if($reservation->is_revised)
+            <span class="multi-date-badge" style="background:#ff9800;">REVISED</span>
+        @endif
     </div>
 
     <div class="generated-date">Generated: {{ $generated_date }}</div>
+
+    @if($reservation->is_revised)
+        <div class="section highlight-area">
+            <div class="section-title" style="background:#ff9800;">REVISED DETAILS</div>
+            <p class="revised-note">This reservation was revised. Changes are highlighted below and summarized for your reference.</p>
+            <div class="info-grid">
+                @foreach($reservation->revision_info['updated_fields'] as $field)
+                    <div class="info-row">
+                        <div class="info-label">{{ $field['label'] }}:</div>
+                        <div class="info-value">
+                            <strong>Before:</strong> {{ $field['old'] }}<br>
+                            <strong>After:</strong> {{ $field['new'] }}
+                        </div>
+                    </div>
+                @endforeach
+                <div class="info-row">
+                    <div class="info-label">Last Revised:</div>
+                    <div class="info-value">
+                        {{ $reservation->revision_info['last_revision_by'] ?? 'Admin' }} on {{ $reservation->revision_info['last_revision_at'] ?? 'Unknown' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- TWO-COLUMN LAYOUT --}}
     <div class="two-col">

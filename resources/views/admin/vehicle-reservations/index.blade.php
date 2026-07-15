@@ -408,6 +408,7 @@
                 <td>
                     <div class="action-icons">
                         <a href="{{ route('admin.vehicle-reservations.show', $res->id) }}" class="btn-icon btn-icon-view" title="View Details">👁️</a>
+                        <a href="{{ route('admin.vehicle-reservations.edit', $res->id) }}" class="btn-icon btn-icon-edit" title="Edit Reservation">✏️</a>
                         @if($res->status === 'approved')
                             <a href="{{ route('report.vehicle.single', $res->id) }}" class="btn-icon btn-icon-report" title="Generate Report" target="_blank">📄</a>
                         @endif

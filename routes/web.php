@@ -174,6 +174,8 @@ Route::middleware(['checkSystemStatus'])->group(function () {
         Route::get('/vehicle-reservations', [VehicleReservationManagementController::class, 'index'])->name('vehicle-reservations.index');
         Route::get('/vehicle-reservations/create', [VehicleReservationManagementController::class, 'create'])->name('vehicle-reservations.create');
         Route::post('/vehicle-reservations', [VehicleReservationManagementController::class, 'store'])->name('vehicle-reservations.store');
+        Route::get('/vehicle-reservations/{id}/edit', [VehicleReservationManagementController::class, 'edit'])->name('vehicle-reservations.edit');
+        Route::put('/vehicle-reservations/{id}', [VehicleReservationManagementController::class, 'update'])->name('vehicle-reservations.update');
         Route::get('/vehicle-reservations/{id}', [VehicleReservationManagementController::class, 'show'])->name('vehicle-reservations.show');
         Route::post('/vehicle-reservations/{id}/approve', [VehicleReservationManagementController::class, 'approve'])->name('vehicle-reservations.approve');
         Route::post('/vehicle-reservations/{id}/reject', [VehicleReservationManagementController::class, 'reject'])->name('vehicle-reservations.reject');
