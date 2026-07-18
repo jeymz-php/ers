@@ -216,6 +216,28 @@
     .event-item:hover {
         background: #e8eee9;
     }
+
+    .event-edit-btn {
+        align-self: center;
+        margin-left: auto;
+        flex-shrink: 0;
+        background: white;
+        color: #1a7a3e;
+        border: 1px solid #d4f5df;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .event-edit-btn:hover {
+        background: #1a7a3e;
+        color: white;
+        border-color: #1a7a3e;
+    }
     
     .event-time {
         min-width: 100px;
@@ -553,12 +575,16 @@
             return;
         }
         
+        const eventEditUrlTemplate = @json(route('admin.reservations.edit', ['id' => '__ID__']));
+        const vehicleEditUrlTemplate = @json(route('admin.vehicle-reservations.edit', ['id' => '__ID__']));
+
         let eventsHTML = '';
         events.forEach(event => {
             const isVehicle = event.type === 'vehicle';
             const isMultiDate = event.is_multi_date;
             const multiDateBadge = isMultiDate ? '<span class="multi-date-indicator">Multiple Dates</span>' : '';
             const typeBadge = isVehicle ? '<span class="multi-date-indicator" style="background:#6c5ce7;">🚐 VEHICLE</span>' : '';
+            const editUrl = (isVehicle ? vehicleEditUrlTemplate : eventEditUrlTemplate).replace('__ID__', event.id);
             eventsHTML += `
                 <div class="event-item" ${isVehicle ? 'style="border-left-color:#6c5ce7;"' : ''}>
                     <div class="event-time">
@@ -575,6 +601,7 @@
                             </div>
                         ` : ''}
                     </div>
+                    <a href="${editUrl}" class="event-edit-btn" title="Edit this ${isVehicle ? 'vehicle reservation' : 'event reservation'}">✏️ Edit</a>
                 </div>
             `;
         });
