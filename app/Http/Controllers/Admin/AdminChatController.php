@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NewChatSessionUserMail;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\ChatSession;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AdminChatController extends Controller
 {
@@ -89,6 +91,8 @@ class AdminChatController extends Controller
             ->where('is_active', true)
             ->first();
 
+        $isNewSession = !$session;
+
         if (!$session) {
             $session = ChatSession::create([
                 'user_id' => $targetUser->id,
@@ -115,6 +119,14 @@ class AdminChatController extends Controller
             'type' => 'chat',
             'is_read' => false,
         ]);
+
+        if ($isNewSession) {
+            try {
+                Mail::to($targetUser->email)->send(new NewChatSessionUserMail($targetUser, $admin, $request->message));
+            } catch (\Exception $e) {
+                Log::error('Failed to send new chat session email to user: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
