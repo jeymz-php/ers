@@ -10,6 +10,7 @@ use App\Models\Campus;
 use App\Mail\ReservationStatusMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class ReservationManagementController extends Controller
@@ -198,6 +199,8 @@ class ReservationManagementController extends Controller
             'user_type' => 'required|in:student,professor',
             'department' => 'nullable|string',
             'equipment' => 'nullable|string',
+            'attachments.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:15360',
+            'remove_attachments' => 'nullable|array',
         ]);
 
         $establishment = Establishment::findOrFail($request->establishment_id);
@@ -261,6 +264,25 @@ class ReservationManagementController extends Controller
         sort($normalizedOriginalDates);
         sort($normalizedDates);
 
+        // ── Attachments: fetch existing, remove any unchecked, append any
+        // newly uploaded files.
+        $existingAttachments = $existingRemarks['attachments'] ?? [];
+        $finalAttachments = $existingAttachments;
+
+        if ($request->filled('remove_attachments')) {
+            foreach ($request->input('remove_attachments') as $toRemove) {
+                Storage::disk('public')->delete($toRemove);
+            }
+            $finalAttachments = array_values(array_diff($finalAttachments, $request->input('remove_attachments')));
+        }
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('reservations/' . date('Y/m'), 'public');
+                $finalAttachments[] = $path;
+            }
+        }
+
         $updatedFields = [];
 
         $fieldsToCompare = [
@@ -278,6 +300,11 @@ class ReservationManagementController extends Controller
             'user_type' => ['label' => 'User Type', 'old' => $existingRemarks['user_type'] ?? 'N/A', 'new' => $request->user_type],
             'department' => ['label' => 'Department', 'old' => $existingRemarks['department'] ?? '', 'new' => $request->department ?? ''],
             'equipment' => ['label' => 'Equipment', 'old' => implode(', ', $originalEquipment), 'new' => implode(', ', $equipment)],
+            'attachments' => [
+                'label' => 'Attachments',
+                'old' => count($existingAttachments) . ' file(s): ' . implode(', ', array_map('basename', $existingAttachments)),
+                'new' => count($finalAttachments) . ' file(s): ' . implode(', ', array_map('basename', $finalAttachments)),
+            ],
         ];
 
         foreach ($fieldsToCompare as $key => $field) {
@@ -296,7 +323,7 @@ class ReservationManagementController extends Controller
             'equipment' => $equipment,
             'multiple_dates' => $normalizedDates,
             'is_multi_date' => count($normalizedDates) > 1,
-            'attachments' => $existingRemarks['attachments'] ?? [],
+            'attachments' => $finalAttachments,
             'updated_fields' => $updatedFields,
             'last_revision_by' => auth()->user()->name,
             'last_revision_at' => now()->format('F d, Y h:i A'),

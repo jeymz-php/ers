@@ -79,6 +79,24 @@
         font-weight: 700;
         margin-bottom: 12px;
     }
+    .existing-attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f7faf8;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+    .existing-attachment-item input {
+        width: auto;
+    }
+    .existing-attachment-item a {
+        color: #1a7a3e;
+        text-decoration: none;
+        flex: 1;
+    }
     @media (max-width: 900px) {
         .form-row {
             grid-template-columns: 1fr;
@@ -90,6 +108,7 @@
     $multipleDates = $remarks['multiple_dates'] ?? [$reservation->event_date];
     $eventDatesText = implode("\n", $multipleDates);
     $equipmentText = is_array($remarks['equipment'] ?? null) ? implode(', ', $remarks['equipment']) : ($remarks['equipment'] ?? '');
+    $existingAttachments = $remarks['attachments'] ?? [];
 @endphp
 
 <div class="edit-card">
@@ -113,7 +132,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.reservations.update', $reservation->id) }}">
+    <form method="POST" action="{{ route('admin.reservations.update', $reservation->id) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -192,6 +211,31 @@
                 <label for="equipment">Equipment Requested</label>
                 <input type="text" id="equipment" name="equipment" value="{{ old('equipment', $equipmentText) }}" placeholder="Separate items with commas">
                 <span class="form-note">Use commas to separate multiple equipment items.</span>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Existing Attachment(s)</label>
+                @if(count($existingAttachments) > 0)
+                    @foreach($existingAttachments as $attachment)
+                        <div class="existing-attachment-item">
+                            <input type="checkbox" name="remove_attachments[]" value="{{ $attachment }}" id="attach-{{ $loop->index }}">
+                            <a href="{{ Storage::url($attachment) }}" target="_blank">📄 {{ basename($attachment) }}</a>
+                            <label for="attach-{{ $loop->index }}" style="margin:0; color:#dc2626; font-weight:400; cursor:pointer;">Remove</label>
+                        </div>
+                    @endforeach
+                @else
+                    <span class="form-note">No attachments uploaded for this reservation yet.</span>
+                @endif
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="attachments">Add More Attachment(s) (optional)</label>
+                <input type="file" id="attachments" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                <span class="form-note">PDF, JPG, or PNG. Max 15MB per file.</span>
             </div>
         </div>
 
